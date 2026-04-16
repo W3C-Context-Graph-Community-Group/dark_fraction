@@ -933,12 +933,9 @@ function DarkFractionCalculator() {
 
         {/* Variables card */}
         <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0, background: "#fff", border: "1px solid #e0e0e0", borderRadius: 16, padding: 20 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             <div style={{ color: "#999", fontSize: 11, textTransform: "uppercase", letterSpacing: 1 }}>
               Boundary variables
-              <span style={{ marginLeft: 8, color: "#bbb", textTransform: "none", letterSpacing: 0, fontSize: 10 }}>
-                · drop a .csv to import
-              </span>
             </div>
             <div style={{ display: "flex", gap: 6 }}>
               <button
@@ -972,6 +969,9 @@ function DarkFractionCalculator() {
                 Verify all
               </button>
             </div>
+          </div>
+          <div style={{ color: "#bbb", fontSize: 10, fontFamily: "'JetBrains Mono', monospace", marginBottom: 10 }}>
+            drop a .csv to import
           </div>
 
           {/* Facet legend row */}
