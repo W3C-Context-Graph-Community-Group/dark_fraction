@@ -16,7 +16,13 @@
 <body>
   <div id="root"></div>
   <script type="text/babel" data-type="module">
-const { useState, useMemo, useCallback } = React;
+const { useState, useMemo, useCallback, useRef } = React;
+
+function parseCsvHeader(text) {
+  const firstLine = text.split(/\r?\n/)[0];
+  if (!firstLine) return [];
+  return firstLine.split(",").map(h => h.trim().replace(/^["']|["']$/g, "")).filter(Boolean);
+}
 
 // --- Math utilities using logarithms to handle large numbers ---
 function logBinom(n, k) {
@@ -447,8 +453,46 @@ function DarkFractionCalculator() {
     setVariables((prev) => prev.map((v) => ({ ...v, facets: [false, false, false] })));
   }, []);
 
+  const [dragging, setDragging] = useState(false);
+  const dragCounter = useRef(0);
+
+  const handleDragEnter = useCallback((e) => {
+    e.preventDefault();
+    dragCounter.current++;
+    if (e.dataTransfer.types.includes("Files")) setDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e) => {
+    e.preventDefault();
+    dragCounter.current--;
+    if (dragCounter.current === 0) setDragging(false);
+  }, []);
+
+  const handleDragOver = useCallback((e) => {
+    e.preventDefault();
+  }, []);
+
+  const handleDrop = useCallback((e) => {
+    e.preventDefault();
+    dragCounter.current = 0;
+    setDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (!file || !file.name.endsWith(".csv")) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const headers = parseCsvHeader(ev.target.result);
+      if (headers.length === 0) return;
+      setVariables(headers.map(name => ({ id: nextId++, name, facets: [false, false, false] })));
+    };
+    reader.readAsText(file);
+  }, []);
+
   return (
     <div
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
       style={{
         height: "100vh",
         background: "#f5f5f5",
@@ -456,9 +500,43 @@ function DarkFractionCalculator() {
         fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
         display: "flex",
         overflow: "hidden",
+        position: "relative",
       }}
     >
       <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700;800&display=swap" rel="stylesheet" />
+
+      {/* Drag overlay */}
+      {dragging && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "rgba(78, 205, 196, 0.08)",
+            border: "3px dashed #4ECDC4",
+            borderRadius: 16,
+            zIndex: 100,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            pointerEvents: "none",
+          }}
+        >
+          <div style={{
+            background: "#fff",
+            padding: "20px 32px",
+            borderRadius: 12,
+            border: "1px solid #e0e0e0",
+            textAlign: "center",
+          }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#4ECDC4", marginBottom: 4 }}>
+              Drop CSV file
+            </div>
+            <div style={{ fontSize: 11, color: "#999" }}>
+              Column headers become boundary variables
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* LEFT COLUMN — visualization & stats */}
       <div
@@ -630,6 +708,9 @@ function DarkFractionCalculator() {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
             <div style={{ color: "#999", fontSize: 11, textTransform: "uppercase", letterSpacing: 1 }}>
               Boundary variables
+              <span style={{ marginLeft: 8, color: "#bbb", textTransform: "none", letterSpacing: 0, fontSize: 10 }}>
+                · drop a .csv to import
+              </span>
             </div>
             <div style={{ display: "flex", gap: 6 }}>
               <button
