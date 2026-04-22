@@ -253,6 +253,8 @@
 
 <script type="module">
 import * as THREE from 'three';
+import { ControlPanel } from './controls/control-panel.js';
+import { ZoomControl }  from './controls/zoom/zoom-control.js';
 
 // ============================================================
 // STATE — single source of truth. CGPL-shaped.
@@ -405,10 +407,10 @@ function darkFraction(n, r) {
 // RENDER — pure function of STATE → scene
 // ============================================================
 
-const OBS_RADIUS = 1.0;
+const OBS_RADIUS = 0.5;
 const OBS_POSITIONS = {
-  "observatron-1": new THREE.Vector3(-2.4, 0, 0),
-  "observatron-2": new THREE.Vector3( 2.4, 0, 0),
+  "observatron-1": new THREE.Vector3(-1.6, 0, 0),
+  "observatron-2": new THREE.Vector3( 1.6, 0, 0),
 };
 
 function colorFromDelta(delta) {
@@ -567,12 +569,41 @@ rim.position.set(-5, -3, 4); scene.add(rim);
 
 const obsPivots = {};
 const obsMeshes = {};
+const BOX_SIZE = OBS_RADIUS * 3.0;  // fixed cube/square size around each observatron
+
 for (const id of ["observatron-1", "observatron-2"]) {
   const pivot = new THREE.Group();
   pivot.position.copy(OBS_POSITIONS[id]);
   scene.add(pivot);
   obsPivots[id] = pivot;
   obsMeshes[id] = null;
+
+  // 2D background square — fixed in scene (does NOT rotate)
+  const squareGeo = new THREE.PlaneGeometry(BOX_SIZE, BOX_SIZE);
+  const squareMat = new THREE.MeshBasicMaterial({
+    color: 0x9b87ff, transparent: true, opacity: 0.04, side: THREE.DoubleSide,
+  });
+  const square = new THREE.Mesh(squareGeo, squareMat);
+  square.position.copy(OBS_POSITIONS[id]);
+  square.position.z = -0.5;  // slightly behind the observatron
+  scene.add(square);
+
+  // 2D square border outline — fixed in scene (does NOT rotate)
+  const squareEdges = new THREE.EdgesGeometry(squareGeo);
+  const squareLine = new THREE.LineSegments(squareEdges,
+    new THREE.LineBasicMaterial({ color: 0x66ccff, transparent: true, opacity: 0.6 })
+  );
+  squareLine.position.copy(square.position);
+  scene.add(squareLine);
+
+  // 3D wireframe cube — inside pivot (rotates with the observatron)
+  const cubeGeo = new THREE.BoxGeometry(BOX_SIZE, BOX_SIZE, BOX_SIZE);
+  const cubeEdges = new THREE.EdgesGeometry(cubeGeo);
+  const cubeLine = new THREE.LineSegments(cubeEdges,
+    new THREE.LineBasicMaterial({ color: 0xcccccc, transparent: true, opacity: 0.5 })
+  );
+  pivot.add(cubeLine);
+  cubeGeo.dispose();
 }
 
 function render() {
@@ -619,8 +650,8 @@ function projectToScreen(v3) {
 function updateHTMLLabels() {
   for (const id of ["observatron-1", "observatron-2"]) {
     const worldPos = OBS_POSITIONS[id].clone();
-    const topEdge  = projectToScreen(new THREE.Vector3(worldPos.x, worldPos.y + 1.15, 0));
-    const botEdge  = projectToScreen(new THREE.Vector3(worldPos.x, worldPos.y - 1.15, 0));
+    const topEdge  = projectToScreen(new THREE.Vector3(worldPos.x, worldPos.y + 0.75, 0));
+    const botEdge  = projectToScreen(new THREE.Vector3(worldPos.x, worldPos.y - 0.75, 0));
 
     const lbl = labelEls[id];
     lbl.style.left = `${topEdge.x - 90}px`;
@@ -676,9 +707,11 @@ function updateJSONView() {
 // ============================================================
 // CAMERA FIT
 // ============================================================
+let zoomCtrl = null;
+
 function fitCamera() {
-  const worldW = 7.2;   // covers both observatrons plus cord with padding
-  const worldH = 3.0;
+  const worldW = 5.0;   // covers both observatrons plus cord with padding
+  const worldH = 2.2;
   const aspect = innerWidth / innerHeight;
   let viewW, viewH;
   if (aspect > worldW / worldH) {
@@ -688,6 +721,11 @@ function fitCamera() {
     viewW = worldW;
     viewH = viewW / aspect;
   }
+  // apply zoom
+  const z = zoomCtrl ? zoomCtrl.value : 1;
+  viewW *= z;
+  viewH *= z;
+
   camera.left = -viewW / 2;
   camera.right = viewW / 2;
   camera.top = viewH / 2;
@@ -695,6 +733,17 @@ function fitCamera() {
   camera.updateProjectionMatrix();
 }
 fitCamera();
+
+// ============================================================
+// CONTROL PANEL
+// ============================================================
+const panel = new ControlPanel();
+zoomCtrl = new ZoomControl({
+  onZoom: () => { fitCamera(); updateHTMLLabels(); },
+  initial: 0.5,
+});
+fitCamera();
+panel.register(zoomCtrl);
 
 addEventListener('resize', () => {
   renderer.setSize(innerWidth, innerHeight);
