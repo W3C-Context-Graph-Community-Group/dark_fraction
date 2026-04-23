@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Demo — Dark Fraction</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #f5f5f5; font-family: 'JetBrains Mono', monospace; color: #333; height: 100vh; display: flex; flex-direction: column; }
+
+    /* --- Header --- */
+    .page-header {
+      padding: 20px 24px 16px 72px;
+      border-bottom: 1px solid #e0e0e0;
+      background: #fff;
+    }
+    .page-header h1 { font-size: 22px; font-weight: 700; color: #F59E0B; }
+    .page-header p  { font-size: 12px; color: #888; margin-top: 4px; }
+
+    /* --- Split layout --- */
+    .split-container {
+      flex: 1; display: flex; overflow: hidden;
+    }
+
+    /* Left panel – light theme */
+    .panel-left {
+      flex: 1; min-width: 200px;
+      background: #fff;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 32px;
+      overflow: auto;
+    }
+
+    /* Resizer */
+    .resizer {
+      width: 6px; cursor: col-resize;
+      background: #e0e0e0;
+      transition: background .15s;
+      flex-shrink: 0;
+    }
+    .resizer:hover, .resizer.active { background: #F59E0B; }
+
+    /* Right panel – dark theme */
+    .panel-right {
+      flex: 1; min-width: 200px;
+      background: #1e1e2e;
+      color: #cdd6f4;
+      padding: 32px;
+      overflow: auto;
+      display: flex; flex-direction: column;
+    }
+    .panel-right .panel-label {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+      color: #6c7086; margin-bottom: 16px;
+    }
+
+    /* --- Drag & drop zone --- */
+    .drop-zone {
+      width: 280px; height: 180px;
+      border: 2px dashed #ccc;
+      border-radius: 12px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 8px;
+      color: #999; font-size: 13px;
+      transition: border-color .2s, background .2s;
+      cursor: default;
+    }
+    .drop-zone.over {
+      border-color: #F59E0B;
+      background: #F59E0B0a;
+    }
+    .drop-zone-icon { font-size: 32px; }
+    .drop-zone-label { font-size: 11px; color: #bbb; }
+
+    /* --- JSON syntax highlighting --- */
+    pre.json-view {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      line-height: 1.8;
+      white-space: pre-wrap;
+      word-break: break-word;
+      flex: 1;
+    }
+    .json-key    { color: #89b4fa; }
+    .json-string { color: #a6e3a1; }
+    .json-brace  { color: #6c7086; }
+  </style>
+</head>
+<body>
+  <script src="../sidebar.js" data-active="demo" data-accent="#F59E0B"></script>
+
+  <!-- Header -->
+  <div class="page-header">
+    <h1>Demo</h1>
+    <p>Hello world &mdash; drag &amp; drop playground</p>
+  </div>
+
+  <!-- Split panels -->
+  <div class="split-container">
+    <!-- Left: light theme, drag & drop -->
+    <div class="panel-left" id="panelLeft">
+      <div class="drop-zone" id="dropZone">
+        <div class="drop-zone-icon">&#8693;</div>
+        <div>Drag &amp; Drop</div>
+        <div class="drop-zone-label">Drop a file here</div>
+      </div>
+    </div>
+
+    <!-- Resizer handle -->
+    <div class="resizer" id="resizer"></div>
+
+    <!-- Right: dark theme, JSON state -->
+    <div class="panel-right" id="panelRight">
+      <div class="panel-label">State</div>
+      <pre class="json-view" id="jsonView"></pre>
+    </div>
+  </div>
+
+  <script>
+  (function() {
+    // --- Resizer ---
+    var resizer = document.getElementById('resizer');
+    var left = document.getElementById('panelLeft');
+    var right = document.getElementById('panelRight');
+    var container = left.parentElement;
+    var dragging = false;
+
+    resizer.addEventListener('mousedown', function(e) {
+      e.preventDefault();
+      dragging = true;
+      resizer.classList.add('active');
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    });
+
+    document.addEventListener('mousemove', function(e) {
+      if (!dragging) return;
+      var rect = container.getBoundingClientRect();
+      var offset = e.clientX - rect.left;
+      var total = rect.width;
+      var pct = (offset / total) * 100;
+      if (pct < 15) pct = 15;
+      if (pct > 85) pct = 85;
+      left.style.flex = 'none';
+      right.style.flex = 'none';
+      left.style.width = pct + '%';
+      right.style.width = (100 - pct) + '%';
+    });
+
+    document.addEventListener('mouseup', function() {
+      if (!dragging) return;
+      dragging = false;
+      resizer.classList.remove('active');
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    });
+
+    // --- Drag & drop zone ---
+    var zone = document.getElementById('dropZone');
+    zone.addEventListener('dragover', function(e) { e.preventDefault(); zone.classList.add('over'); });
+    zone.addEventListener('dragleave', function()  { zone.classList.remove('over'); });
+    zone.addEventListener('drop', function(e) { e.preventDefault(); zone.classList.remove('over'); });
+
+    // --- JSON state rendering ---
+    var state = { "hello": "world" };
+
+    function renderJson(obj) {
+      var raw = JSON.stringify(obj, null, 2);
+      var html = raw
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/"([^"]+)"(?=\s*:)/g, '<span class="json-key">"$1"</span>')
+        .replace(/:\s*"([^"]+)"/g, ': <span class="json-string">"$1"</span>')
+        .replace(/[{}]/g, '<span class="json-brace">$&</span>');
+      document.getElementById('jsonView').innerHTML = html;
+    }
+
+    renderJson(state);
+  })();
+  </script>
+</body>
+</html>

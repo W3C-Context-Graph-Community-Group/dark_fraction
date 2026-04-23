@@ -37,162 +37,6 @@
     letter-spacing: 0.3px;
   }
 
-  /* hamburger */
-  #menu-toggle {
-    position: fixed;
-    top: calc(env(safe-area-inset-top) + 12px);
-    left: 14px;
-    width: 44px; height: 44px;
-    background: #1a1a2e;
-    border: 1px solid rgba(255,255,255,0.18);
-    border-radius: 10px;
-    display: flex; flex-direction: column;
-    justify-content: center; align-items: center;
-    gap: 5px;
-    cursor: pointer;
-    z-index: 100;
-    padding: 0;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.5);
-  }
-  #menu-toggle:active { background: #25253e; }
-  #menu-toggle span {
-    display: block;
-    width: 20px; height: 2px;
-    background: #ffffff;
-    border-radius: 1px;
-    transition: transform 0.25s ease, opacity 0.2s ease;
-  }
-  body.menu-open #menu-toggle span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
-  body.menu-open #menu-toggle span:nth-child(2) { opacity: 0; }
-  body.menu-open #menu-toggle span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
-
-  #backdrop {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.5);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.25s ease;
-    z-index: 80;
-  }
-  body.menu-open #backdrop { opacity: 1; pointer-events: auto; }
-
-  #sidebar {
-    position: fixed;
-    top: 0; left: 0; bottom: 0;
-    width: min(90vw, 360px);
-    background: #0f0f19;
-    border-right: 1px solid rgba(255,255,255,0.08);
-    transform: translateX(-100%);
-    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
-    z-index: 90;
-    display: flex; flex-direction: column;
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-  body.menu-open #sidebar { transform: translateX(0); }
-
-  .sidebar-header {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 18px 20px 14px;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-  }
-  .sidebar-header h2 {
-    margin: 0;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    opacity: 0.8;
-  }
-  #close-btn {
-    background: none; border: 0; color: #eee;
-    font-size: 22px; line-height: 1;
-    cursor: pointer; padding: 4px 8px;
-    opacity: 0.5;
-  }
-  .sidebar-body {
-    padding: 16px 18px 20px;
-    overflow-y: auto;
-    flex: 1;
-    display: flex; flex-direction: column; gap: 10px;
-  }
-
-  .section-title {
-    font-size: 10px;
-    letter-spacing: 1.2px;
-    text-transform: uppercase;
-    opacity: 0.45;
-    margin-top: 8px;
-    margin-bottom: 2px;
-  }
-
-  button.action {
-    background: #2a2340;
-    color: #eee;
-    border: 1px solid rgba(155, 135, 255, 0.35);
-    padding: 10px 12px;
-    border-radius: 8px;
-    font-weight: 500;
-    font-size: 13px;
-    cursor: pointer;
-    text-align: left;
-    font-family: inherit;
-  }
-  button.action:active { background: #352a55; }
-  button.primary {
-    background: #9b87ff; color: #0a0a12; border: 0;
-    padding: 11px;
-    border-radius: 8px;
-    font-weight: 600; font-size: 13px;
-    cursor: pointer;
-  }
-  button.primary:active { opacity: 0.7; }
-  button.secondary {
-    background: transparent;
-    color: rgba(255,255,255,0.7);
-    border: 1px solid rgba(255,255,255,0.2);
-    padding: 9px;
-    border-radius: 8px;
-    font-weight: 500; font-size: 12px;
-    cursor: pointer;
-  }
-
-  .json-panel {
-    background: #060610;
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 6px;
-    padding: 10px 12px;
-    margin-top: 6px;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    font-size: 10px;
-    line-height: 1.45;
-    color: rgba(200, 200, 220, 0.9);
-    max-height: 340px;
-    overflow: auto;
-    white-space: pre;
-  }
-  .json-key   { color: #9b87ff; }
-  .json-str   { color: #9ce09c; }
-  .json-null  { color: #ff8b8b; }
-  .json-num   { color: #ffd08a; }
-
-  #legend {
-    position: fixed;
-    top: calc(env(safe-area-inset-top) + 18px);
-    left: 74px; right: 14px;
-    display: flex; align-items: center;
-    gap: 10px;
-    font-size: 10px;
-    opacity: 0.55;
-    z-index: 10;
-    pointer-events: none;
-    letter-spacing: 0.5px;
-  }
-  #legend .bar {
-    width: 110px; height: 4px; border-radius: 2px;
-    background: linear-gradient(to right, rgb(0,0,255), rgb(128,0,128), rgb(255,0,0));
-  }
-  #legend small { font-weight: 600; opacity: 0.8; }
   #hint {
     position: fixed;
     bottom: calc(env(safe-area-inset-bottom) + 14px);
@@ -207,45 +51,12 @@
 </style>
 </head>
 <body>
+<script src="../sidebar.js" data-active="observatrons" data-mode="dark"></script>
 <div id="canvas-wrap"></div>
 <div id="overlay"></div>
 
-<div id="legend">
-  <small>δ</small>
-  <span>0 verified</span>
-  <span class="bar"></span>
-  <span>1 dark</span>
-</div>
 <div id="hint">drag an observatron · fiber bundle carries a Bishop-transported frame</div>
 
-<button id="menu-toggle" aria-label="Open menu">
-  <span></span><span></span><span></span>
-</button>
-<div id="backdrop"></div>
-
-<aside id="sidebar">
-  <div class="sidebar-header">
-    <h2>CGPL node</h2>
-    <button id="close-btn" aria-label="Close">×</button>
-  </div>
-  <div class="sidebar-body">
-
-    <div class="section-title">Emit message-event</div>
-    <button class="action" id="emit-obs1">+ Drop random CSVs → observatron-1</button>
-    <button class="action" id="emit-obs2">+ Drop random CSVs → observatron-2</button>
-
-    <div class="section-title">Node</div>
-    <button class="secondary" id="reseed">Reseed demo state</button>
-    <button class="secondary" id="reset">Reset (empty observatrons)</button>
-    <button class="secondary" id="toggle-json">Show / hide state JSON</button>
-
-    <div id="json-wrap" style="display: none;">
-      <div class="section-title">STATE</div>
-      <div id="json-view" class="json-panel"></div>
-    </div>
-
-  </div>
-</aside>
 
 <script type="importmap">
 { "imports": { "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js" } }
@@ -253,8 +64,10 @@
 
 <script type="module">
 import * as THREE from 'three';
-import { ControlPanel } from './controls/control-panel.js';
-import { ZoomControl }  from './controls/zoom/zoom-control.js';
+import { ControlPanel }    from './controls/control-panel.js';
+import { ZoomControl }     from './controls/zoom/zoom-control.js';
+import { SaveImageControl } from './controls/save-image/save-image-control.js';
+import { LegendControl }    from './controls/legend/legend-control.js';
 
 // ============================================================
 // STATE — single source of truth. CGPL-shaped.
@@ -556,9 +369,10 @@ scene.background = new THREE.Color(0x0a0a12);
 const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 100);
 camera.position.set(0, 0, 10);
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.setSize(innerWidth, innerHeight);
+renderer.domElement.style.pointerEvents = 'none';
 wrap.appendChild(renderer.domElement);
 
 scene.add(new THREE.AmbientLight(0xffffff, 0.45));
@@ -617,7 +431,6 @@ function render() {
     obsMeshes[id] = built;
   }
   updateHTMLLabels();
-  updateJSONView();
 }
 
 // ============================================================
@@ -685,26 +498,6 @@ function updateHTMLLabels() {
 }
 
 // ============================================================
-// JSON INSPECTOR
-// ============================================================
-function escapeHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-function prettyJSON(obj) {
-  let raw = JSON.stringify(obj, null, 2);
-  // super light syntax colorization
-  return escapeHtml(raw)
-    .replace(/"([^"\\]+)":/g, '<span class="json-key">"$1"</span>:')
-    .replace(/: "([^"\\]*)"/g, ': <span class="json-str">"$1"</span>')
-    .replace(/: null/g, ': <span class="json-null">null</span>')
-    .replace(/: (-?\d+(?:\.\d+)?)/g, ': <span class="json-num">$1</span>');
-}
-function updateJSONView() {
-  const el = document.getElementById('json-view');
-  if (el) el.innerHTML = prettyJSON(STATE);
-}
-
-// ============================================================
 // CAMERA FIT
 // ============================================================
 let zoomCtrl = null;
@@ -738,9 +531,23 @@ fitCamera();
 // CONTROL PANEL
 // ============================================================
 const panel = new ControlPanel();
+
+const saveCtrl = new SaveImageControl({
+  onSave: () => {
+    renderer.render(scene, camera);
+    const link = document.createElement('a');
+    link.download = 'observatron.png';
+    link.href = renderer.domElement.toDataURL('image/png');
+    link.click();
+  },
+});
+const legendCtrl = new LegendControl();
+panel.register(legendCtrl);
+panel.register(saveCtrl);
+
 zoomCtrl = new ZoomControl({
   onZoom: () => { fitCamera(); updateHTMLLabels(); },
-  initial: 0.5,
+  initial: 2,
 });
 fitCamera();
 panel.register(zoomCtrl);
@@ -751,47 +558,6 @@ addEventListener('resize', () => {
   updateHTMLLabels();
 });
 
-// ============================================================
-// UI
-// ============================================================
-// running RNG for user-triggered emissions, seeded from Date.now
-let interactiveRand = prng(Date.now() >>> 0);
-
-document.getElementById('emit-obs1').addEventListener('click', () => {
-  emitMessageEvent(interactiveRand, "observatron-1");
-  render();
-});
-document.getElementById('emit-obs2').addEventListener('click', () => {
-  emitMessageEvent(interactiveRand, "observatron-2");
-  render();
-});
-document.getElementById('reseed').addEventListener('click', () => {
-  seedState(Date.now() >>> 0);
-  render();
-});
-document.getElementById('reset').addEventListener('click', () => {
-  resetState();
-  render();
-});
-document.getElementById('toggle-json').addEventListener('click', () => {
-  const w = document.getElementById('json-wrap');
-  w.style.display = w.style.display === 'none' ? 'block' : 'none';
-  if (w.style.display === 'block') updateJSONView();
-});
-
-// sidebar
-document.getElementById('menu-toggle').addEventListener('click', () => {
-  document.body.classList.toggle('menu-open');
-});
-document.getElementById('close-btn').addEventListener('click', () => {
-  document.body.classList.remove('menu-open');
-});
-document.getElementById('backdrop').addEventListener('click', () => {
-  document.body.classList.remove('menu-open');
-});
-addEventListener('keydown', e => {
-  if (e.key === 'Escape') document.body.classList.remove('menu-open');
-});
 
 // ============================================================
 // INIT
@@ -1061,23 +827,26 @@ function onPointerUp() {
   dragTarget = null;
 }
 
-// mouse
-renderer.domElement.addEventListener('mousedown', e => onPointerDown(e.clientX, e.clientY));
+// mouse — attach to wrap (div), not canvas, so right-click shows normal browser menu
+wrap.addEventListener('mousedown', e => {
+  if (e.button !== 0) return;
+  onPointerDown(e.clientX, e.clientY);
+});
 addEventListener('mousemove', e => onPointerMove(e.clientX, e.clientY));
 addEventListener('mouseup', onPointerUp);
 
 // touch (single finger; ignore multi-touch so we don't fight pinch)
-renderer.domElement.addEventListener('touchstart', e => {
+wrap.addEventListener('touchstart', e => {
   if (e.touches.length === 1) onPointerDown(e.touches[0].clientX, e.touches[0].clientY);
 }, { passive: true });
-renderer.domElement.addEventListener('touchmove', e => {
+wrap.addEventListener('touchmove', e => {
   if (e.touches.length === 1) {
     onPointerMove(e.touches[0].clientX, e.touches[0].clientY);
     e.preventDefault();  // block page scroll while rotating
   }
 }, { passive: false });
-renderer.domElement.addEventListener('touchend', onPointerUp);
-renderer.domElement.addEventListener('touchcancel', onPointerUp);
+wrap.addEventListener('touchend', onPointerUp);
+wrap.addEventListener('touchcancel', onPointerUp);
 
 // No auto-spin. Observatrons rotate only via thumb drag.
 // Fiber bundle is rebuilt every frame so it tracks endpoint rotations

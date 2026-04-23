@@ -1,0 +1,12 @@
+{
+  "name": "dark-fraction",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "bus": "node lib/event-bus/server.js",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.20.0"
+  }
+}
