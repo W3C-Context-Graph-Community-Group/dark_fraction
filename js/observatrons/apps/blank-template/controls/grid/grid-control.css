@@ -1,0 +1,35 @@
+.grid-control {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.grid-control__btn {
+  background: none;
+  border: 1px solid var(--cp-accent-dim);
+  color: var(--cp-text-muted);
+  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.grid-control__btn:hover {
+  color: var(--cp-accent);
+  border-color: var(--cp-accent);
+}
+
+.grid-control__btn--active {
+  color: #4a90d9;
+  border-color: #4a90d9;
+  box-shadow: 0 0 0 1px #4a90d9;
+}
+
+.grid-control__btn:active {
+  opacity: 0.7;
+}

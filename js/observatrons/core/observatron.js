@@ -1,60 +1,12 @@
 import * as THREE from 'three';
+import { ObservatronChannelManager } from './channel-manager.js';
+import { FacetHeight } from './facet-height.js';
 
 // ============================================================
 // Observatron — self-contained CGPL observatron renderer
 // ============================================================
 
 const OBS_RADIUS = 0.5;
-
-function prng(seed) {
-  let s = seed >>> 0;
-  return () => {
-    s = (s + 0x6D2B79F5) >>> 0;
-    let t = s;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function randIntIn(rand, lo, hi) {
-  return lo + Math.floor(rand() * (hi - lo + 1));
-}
-
-function makeColumn(rand, obsId, msgId, datasetPath, colName) {
-  const base = `cgp://${obsId}/events/${msgId}/${datasetPath}#${colName}`;
-  const hasMeaning   = rand() < 0.5;
-  const hasStructure = rand() < 0.5;
-  return {
-    name: colName,
-    facets: {
-      data:      { url: base },
-      meaning:   { url: hasMeaning   ? base + "/foo" : null },
-      structure: { url: hasStructure ? base + "/bar" : null },
-      context:   { url: null },
-    },
-  };
-}
-
-function makeMessageEvent(rand, obsId, msgIndex) {
-  const msgId = `msg-${String(msgIndex + 1).padStart(3, '0')}`;
-  const numCsvs = randIntIn(rand, 1, 3);
-  const attachments = [];
-  for (let i = 0; i < numCsvs; i++) {
-    const datasetPath = `dataset-${i + 1}.csv`;
-    const numCols = randIntIn(rand, 1, 5);
-    const columns = [];
-    for (let k = 0; k < numCols; k++) {
-      columns.push(makeColumn(rand, obsId, msgId, datasetPath, `col-${k + 1}`));
-    }
-    attachments.push({ path: datasetPath, columns });
-  }
-  return {
-    "message-id": msgId,
-    timestamp: new Date().toISOString(),
-    attachments,
-  };
-}
 
 function darkFraction(n, r) {
   if (n <= 0) return 0;
@@ -69,14 +21,6 @@ function darkFraction(n, r) {
   return Math.max(0, Math.min(1, 1 - sum));
 }
 
-function colorFromDelta(delta) {
-  const d = Math.max(0, Math.min(1, delta));
-  return new THREE.Color(d, 0, 1 - d);
-}
-
-function vecMag(v) {
-  let s = 0; for (const x of v) s += x * x; return Math.sqrt(s);
-}
 
 function disposeGroup(g) {
   if (!g) return;
@@ -96,7 +40,12 @@ export class Observatron {
     this._container = containerEl;
 
     // ── state ──
-    this._state = { "message-events": [] };
+    this._channelMgr = new ObservatronChannelManager({ systemId: '0', observatronId: '0' });
+    this._channelsRange = null;  // {min, max} or null
+    this._eventsRange = null;    // {min, max} or null
+    this._anchorsRange = null;   // {min, max} or null
+    this._pathsRange = null;     // {min, max} or null
+    this._seed = undefined;
 
     // ── scene ──
     this._scene = new THREE.Scene();
@@ -128,42 +77,32 @@ export class Observatron {
 
     const BOX_SIZE = OBS_RADIUS * 3.0;
 
-    // 2D background square (fixed in scene)
-    const squareGeo = new THREE.PlaneGeometry(BOX_SIZE, BOX_SIZE);
-    const squareMat = new THREE.MeshBasicMaterial({
-      color: 0x9b87ff, transparent: true, opacity: 0.04, side: THREE.DoubleSide,
-    });
-    const square = new THREE.Mesh(squareGeo, squareMat);
-    square.position.set(0, 0, -0.5);
-    this._scene.add(square);
-
-    // 2D square border outline (fixed in scene)
-    const squareEdges = new THREE.EdgesGeometry(squareGeo);
-    const squareLine = new THREE.LineSegments(squareEdges,
-      new THREE.LineBasicMaterial({ color: 0x66ccff, transparent: true, opacity: 0.6 })
-    );
-    squareLine.position.copy(square.position);
-    this._scene.add(squareLine);
+    // (2D bounding box removed — grid dots handle this role)
 
     // 3D wireframe cube (rotates with pivot)
     const cubeGeo = new THREE.BoxGeometry(BOX_SIZE, BOX_SIZE, BOX_SIZE);
     const cubeEdges = new THREE.EdgesGeometry(cubeGeo);
-    const cubeLine = new THREE.LineSegments(cubeEdges,
+    this._bgCube = new THREE.LineSegments(cubeEdges,
       new THREE.LineBasicMaterial({ color: 0xcccccc, transparent: true, opacity: 0.5 })
     );
-    this._pivot.add(cubeLine);
+    this._bgCube.visible = false;
+    this._pivot.add(this._bgCube);
     cubeGeo.dispose();
+
+    // front-top-left corner marker
+    const h = BOX_SIZE / 2;
+    const markerGeo = new THREE.BufferGeometry();
+    markerGeo.setAttribute('position', new THREE.Float32BufferAttribute([-h, h, h], 3));
+    this._bgCorner = new THREE.Points(markerGeo, new THREE.PointsMaterial({
+      color: 0xffffff, size: 6, sizeAttenuation: false,
+    }));
+    this._bgCorner.visible = false;
+    this._pivot.add(this._bgCorner);
 
     // ── HTML labels ──
     this._overlay = document.getElementById('overlay');
-    this._labelEl = document.createElement('div');
-    this._labelEl.className = 'obs-label';
-    this._labelEl.textContent = 'observatron';
-    this._overlay.appendChild(this._labelEl);
-
-    this._metaEl = document.createElement('div');
-    this._metaEl.className = 'obs-meta';
-    this._overlay.appendChild(this._metaEl);
+    this._labelEl = null;
+    this._metaEl = null;
 
     // ── color scheme ──
     this._colorScheme = null;
@@ -249,6 +188,30 @@ export class Observatron {
     cs.onChange = () => this._rebuild();
   }
 
+  /** Set channel count range {min, max} and re-seed. */
+  set channelsRange(range) {
+    this._channelsRange = range;
+    if (this._seed !== undefined) this._cmd_seed({ seed: this._seed });
+  }
+
+  /** Set event count range {min, max} and re-seed. */
+  set eventsRange(range) {
+    this._eventsRange = range;
+    if (this._seed !== undefined) this._cmd_seed({ seed: this._seed });
+  }
+
+  /** Set anchors-per-event range {min, max} and re-seed. */
+  set anchorsRange(range) {
+    this._anchorsRange = range;
+    if (this._seed !== undefined) this._cmd_seed({ seed: this._seed });
+  }
+
+  /** Set paths-per-anchor range {min, max} and re-seed. */
+  set pathsRange(range) {
+    this._pathsRange = range;
+    if (this._seed !== undefined) this._cmd_seed({ seed: this._seed });
+  }
+
   /** Stop animation, detach DOM, dispose THREE resources. */
   dispose() {
     this._running = false;
@@ -295,26 +258,23 @@ export class Observatron {
 
   _cmd_seed(data) {
     const seed = data.seed ?? 0;
-    this._state["message-events"] = [];
-    const rand = prng(seed);
-    const numMsgs = randIntIn(rand, 1, 3);
-    for (let i = 0; i < numMsgs; i++) {
-      const idx = this._state["message-events"].length;
-      this._state["message-events"].push(makeMessageEvent(rand, 'observatron', idx));
-    }
+    this._seed = seed;
+    this._channelMgr.seed(seed, {
+      channelsRange: data.channelsRange ?? this._channelsRange ?? null,
+      eventsRange:   data.eventsRange   ?? this._eventsRange   ?? null,
+      anchorsRange:  data.anchorsRange  ?? this._anchorsRange  ?? null,
+      pathsRange:    data.pathsRange    ?? this._pathsRange    ?? null,
+    });
     this._rebuild();
   }
 
   _cmd_emit(data) {
-    const events = data.events ?? [];
-    for (const ev of events) {
-      this._state["message-events"].push(ev);
-    }
+    // emit is not used with the channel manager; kept for API compatibility
     this._rebuild();
   }
 
   _cmd_reset() {
-    this._state["message-events"] = [];
+    this._channelMgr.reset();
     this._rebuild();
   }
 
@@ -340,30 +300,49 @@ export class Observatron {
 
   _deriveSpikes() {
     const spikes = [];
-    const regionStats = [];
+    const events = this._channelMgr.events;
 
-    this._state["message-events"].forEach((ev, regionIdx) => {
-      let m = 0, r = 0;
-      ev.attachments.forEach(att => {
-        att.columns.forEach(col => {
+    // build channel→index map for region assignment
+    const channelIndex = new Map();
+    for (const ev of events) {
+      if (!channelIndex.has(ev.channel)) {
+        channelIndex.set(ev.channel, channelIndex.size);
+      }
+    }
+
+    // per-channel accumulators
+    const channelStats = new Map(); // channelName → {m, r}
+    for (const [ch] of channelIndex) channelStats.set(ch, { m: 0, r: 0 });
+
+    for (const ev of events) {
+      const regionIdx = channelIndex.get(ev.channel);
+      const st = channelStats.get(ev.channel);
+      for (const att of ev.attachments) {
+        for (const col of att.columns) {
           const f = col.facets;
-          const mBit = f.meaning.url   ? 1 : 0;
-          const sBit = f.structure.url ? 1 : 0;
-          const cBit = f.context.url   ? 1 : 0;
+          const mBit = f['/meaning'].symbol.length   > 0 ? 1 : 0;
+          const sBit = f['/structure']['constraint-key'].length > 0 ? 1 : 0;
+          const cBit = f['/context'].timestamp.length > 0 ? 1 : 0;
           const v = [1, mBit, sBit, cBit];
           spikes.push({
             region: regionIdx,
             v,
             col,
-            messageId: ev["message-id"],
-            datasetPath: att.path,
+            channel: ev.channel,
+            eventUrl: ev.url,
+            anchorUrl: att.url,
           });
-          m += 1;
-          r += mBit + sBit + cBit;
-        });
-      });
-      regionStats.push({ m, r, n: 3 * m, delta: darkFraction(3 * m, r) });
-    });
+          st.m += 1;
+          st.r += mBit + sBit + cBit;
+        }
+      }
+    }
+
+    // regionStats ordered by channel index
+    const regionStats = [];
+    for (const [, st] of channelStats) {
+      regionStats.push({ m: st.m, r: st.r, n: 3 * st.m, delta: darkFraction(3 * st.m, st.r) });
+    }
 
     return { spikes, regionStats };
   }
@@ -372,54 +351,129 @@ export class Observatron {
     const group = new THREE.Group();
     const { spikes, regionStats } = this._deriveSpikes();
     const n = spikes.length;
+    const cs = this._colorScheme;
 
-    const emptyColor = this._colorScheme ? this._colorScheme.emptyColor : 0x202035;
+    const sphereColor  = cs ? cs.sphereColor  : 0x3a3a42;
+    const channelColor = cs ? cs.channelColor : 0x1a1a20;
+    const emptyColor   = cs ? cs.emptyColor   : 0x2a2a30;
 
     if (n === 0) {
       group.add(new THREE.Mesh(
         new THREE.SphereGeometry(OBS_RADIUS, 48, 48),
-        new THREE.MeshPhongMaterial({ color: emptyColor, shininess: 20 })
+        new THREE.MeshPhongMaterial({ color: emptyColor, shininess: 40 })
       ));
       return { group, n: 0, regionStats };
     }
 
-    // spike directions via Fibonacci distribution
-    const goldenAngle = Math.PI * (3 - Math.sqrt(5));
-    const dirs = [];
-    for (let i = 0; i < n; i++) {
-      const y = n === 1 ? 0 : 1 - (i / (n - 1)) * 2;
-      const r = Math.sqrt(Math.max(0, 1 - y * y));
-      const theta = i * goldenAngle;
-      dirs.push(new THREE.Vector3(Math.cos(theta) * r, y, Math.sin(theta) * r));
+    // ── channel centroids: deterministic placement ──
+    const numChannels = regionStats.length;
+    const channelCentroids = [];
+    if (numChannels === 1) {
+      channelCentroids.push(new THREE.Vector3(0, 1, 0));
+    } else {
+      const ga = Math.PI * (3 - Math.sqrt(5));
+      for (let ci = 0; ci < numChannels; ci++) {
+        const cy = 1 - (ci / (numChannels - 1)) * 2;
+        const cr = Math.sqrt(Math.max(0, 1 - cy * cy));
+        const ct = ci * ga;
+        channelCentroids.push(new THREE.Vector3(Math.cos(ct) * cr, cy, Math.sin(ct) * cr));
+      }
     }
 
-    // region-colored sphere (Voronoi partition by nearest spike)
-    const cs = this._colorScheme;
-    const paletteDelta = regionStats.map(s =>
-      cs ? cs.regionColor(s.delta) : colorFromDelta(s.delta)
-    );
-    const sphereGeo = new THREE.SphereGeometry(OBS_RADIUS * 0.99, 60, 60);
-    const pos = sphereGeo.attributes.position;
-    const cols = new Float32Array(pos.count * 3);
-    for (let i = 0; i < pos.count; i++) {
-      const vx = pos.getX(i), vy = pos.getY(i), vz = pos.getZ(i);
-      const L = Math.sqrt(vx * vx + vy * vy + vz * vz);
-      const nx = vx / L, ny = vy / L, nz = vz / L;
-      let bestDot = -Infinity, bestRegion = 0;
-      for (let s = 0; s < n; s++) {
-        const d = nx * dirs[s].x + ny * dirs[s].y + nz * dirs[s].z;
-        if (d > bestDot) { bestDot = d; bestRegion = spikes[s].region; }
-      }
-      const c = paletteDelta[bestRegion] || new THREE.Color(emptyColor);
-      cols[i * 3] = c.r; cols[i * 3 + 1] = c.g; cols[i * 3 + 2] = c.b;
+    // ── count spikes per channel ──
+    const spikesPerChannel = new Array(numChannels).fill(0);
+    for (const sp of spikes) spikesPerChannel[sp.region]++;
+
+    // ── compute channel cap angles from spike count + footprint ──
+    const spikeFootprint = Math.asin(Math.min(1, FacetHeight.baseEdge(n, OBS_RADIUS) / (Math.sqrt(3) * OBS_RADIUS)));
+    const channels = [];
+    for (let ci = 0; ci < numChannels; ci++) {
+      const K = spikesPerChannel[ci];
+      const rawAngle = spikeFootprint * Math.sqrt(K) + Math.PI / 26;
+      const capAngle = Math.max(Math.PI / 18, Math.min(Math.PI / 3, rawAngle));
+      channels.push({ centroid: channelCentroids[ci], angle: capAngle });
     }
-    sphereGeo.setAttribute('color', new THREE.BufferAttribute(cols, 3));
+
+    // ── spike directions: Fibonacci within each channel's cone ──
+    const dirs = new Array(n);
+    const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+    const channelSpikeIndices = Array.from({ length: numChannels }, () => []);
+    for (let si = 0; si < n; si++) channelSpikeIndices[spikes[si].region].push(si);
+
+    for (let ci = 0; ci < numChannels; ci++) {
+      const ch = channels[ci];
+      const indices = channelSpikeIndices[ci];
+      const K = indices.length;
+      const spreadAngle = ch.angle * 0.7;
+
+      const q = new THREE.Quaternion().setFromUnitVectors(
+        new THREE.Vector3(0, 1, 0), ch.centroid
+      );
+
+      for (let j = 0; j < K; j++) {
+        const t = K === 1 ? 0 : j / (K - 1);
+        const ly = 1 - t * (1 - Math.cos(spreadAngle));
+        const lr = Math.sqrt(Math.max(0, 1 - ly * ly));
+        const phi = j * goldenAngle;
+        const localDir = new THREE.Vector3(Math.cos(phi) * lr, ly, Math.sin(phi) * lr);
+        localDir.applyQuaternion(q).normalize();
+        dirs[indices[j]] = localDir;
+      }
+    }
+
+    // ── sphere (uniform color) ──
+    const sphereGeo = new THREE.SphereGeometry(OBS_RADIUS * 0.999, 64, 64);
     group.add(new THREE.Mesh(sphereGeo, new THREE.MeshPhongMaterial({
-      vertexColors: true, shininess: 20
+      color: sphereColor, shininess: 40
     })));
 
-    // spikes: one tetrahedron per column
-    const baseEdge = 2.8 * OBS_RADIUS / Math.sqrt(n);
+    // ── channel caps (spherical caps with radial alpha falloff) ──
+    for (let ci = 0; ci < numChannels; ci++) {
+      const ch = channels[ci];
+      const capR = OBS_RADIUS * 1.001;
+      const capGeo = new THREE.SphereGeometry(capR, 48, 24, 0, Math.PI * 2, 0, ch.angle);
+
+      // per-vertex alpha: 1.0 in inner 90%, fading to 0 at the edge
+      const capPos = capGeo.attributes.position;
+      const alphas = new Float32Array(capPos.count);
+      const fadeStart = ch.angle * 0.9;
+      for (let vi = 0; vi < capPos.count; vi++) {
+        const y = capPos.getY(vi);
+        const theta = Math.acos(Math.min(1, Math.max(-1, y / capR)));
+        alphas[vi] = theta <= fadeStart
+          ? 1.0
+          : Math.max(0, 1.0 - (theta - fadeStart) / (ch.angle - fadeStart));
+      }
+      capGeo.setAttribute('alpha', new THREE.BufferAttribute(alphas, 1));
+
+      const capMat = new THREE.ShaderMaterial({
+        uniforms: { color: { value: new THREE.Color(channelColor) } },
+        vertexShader: [
+          'attribute float alpha;',
+          'varying float vAlpha;',
+          'void main() {',
+          '  vAlpha = alpha;',
+          '  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);',
+          '}',
+        ].join('\n'),
+        fragmentShader: [
+          'uniform vec3 color;',
+          'varying float vAlpha;',
+          'void main() {',
+          '  gl_FragColor = vec4(color, vAlpha);',
+          '}',
+        ].join('\n'),
+        transparent: true,
+        depthWrite: false,
+      });
+
+      const capMesh = new THREE.Mesh(capGeo, capMat);
+      capMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), ch.centroid);
+      group.add(capMesh);
+    }
+
+    // ── spikes: one tetrahedron per column ──
+    const baseEdge = FacetHeight.baseEdge(n, OBS_RADIUS);
     const rBase = baseEdge / Math.sqrt(3);
     const baseHeightRef = baseEdge * Math.sqrt(2 / 3);
 
@@ -430,14 +484,12 @@ export class Observatron {
     for (let i = 0; i < n; i++) {
       const normal = dirs[i];
       const sp = spikes[i];
-      const mag = vecMag(sp.v);
-      const hTetra = baseHeightRef * mag * 1.15;
+      const hTetra = FacetHeight.spikeHeight(baseHeightRef, sp.v, OBS_RADIUS);
 
-      const verifiedFrac = (mag * mag - 1) / 3;
-      const spikeColor = cs
+      const verifiedFrac = FacetHeight.verifiedFraction(sp.v);
+      const spikeCol = cs
         ? cs.spikeColor(verifiedFrac)
-        : new THREE.Color(1 - verifiedFrac, 0.05, verifiedFrac);
-      const regionColor = paletteDelta[sp.region] || new THREE.Color(emptyColor);
+        : new THREE.Color(0.25 + verifiedFrac * 0.75, 0.45 + verifiedFrac * 0.55, 0.5 + verifiedFrac * 0.5);
 
       const basePt = normal.clone().multiplyScalar(OBS_RADIUS * 1.003);
       const apex   = normal.clone().multiplyScalar(OBS_RADIUS + hTetra);
@@ -457,7 +509,7 @@ export class Observatron {
         );
       }
 
-      // tetrahedron base (region color)
+      // tetrahedron base (channel hole color)
       const baseGeom = new THREE.BufferGeometry();
       baseGeom.setAttribute('position', new THREE.BufferAttribute(new Float32Array([
         bv[0].x, bv[0].y, bv[0].z,
@@ -466,10 +518,10 @@ export class Observatron {
       ]), 3));
       baseGeom.computeVertexNormals();
       group.add(new THREE.Mesh(baseGeom, new THREE.MeshPhongMaterial({
-        color: regionColor, shininess: 25, flatShading: true
+        color: channelColor, shininess: 10, flatShading: true
       })));
 
-      // three side faces (spike color)
+      // three side faces (spike color based on verification)
       const sideGeom = new THREE.BufferGeometry();
       sideGeom.setAttribute('position', new THREE.BufferAttribute(new Float32Array([
         bv[0].x, bv[0].y, bv[0].z,  bv[1].x, bv[1].y, bv[1].z,  apex.x, apex.y, apex.z,
@@ -478,7 +530,7 @@ export class Observatron {
       ]), 3));
       sideGeom.computeVertexNormals();
       group.add(new THREE.Mesh(sideGeom, new THREE.MeshPhongMaterial({
-        color: spikeColor, shininess: 60, flatShading: true
+        color: spikeCol, shininess: 60, flatShading: true
       })));
     }
 
@@ -498,33 +550,37 @@ export class Observatron {
   }
 
   _updateLabels() {
+    if (!this._labelEl && !this._metaEl) return;
+
     const topEdge = this._projectToScreen(new THREE.Vector3(0, 0.75, 0));
     const botEdge = this._projectToScreen(new THREE.Vector3(0, -0.75, 0));
 
-    this._labelEl.style.left  = `${topEdge.x - 90}px`;
-    this._labelEl.style.top   = `${topEdge.y - 22}px`;
-    this._labelEl.style.width = '180px';
-    this._labelEl.style.textAlign = 'center';
-
-    const events = this._state["message-events"].length;
-    let cols = 0;
-    for (const ev of this._state["message-events"]) {
-      for (const a of ev.attachments) cols += a.columns.length;
+    if (this._labelEl) {
+      this._labelEl.style.left  = `${topEdge.x - 90}px`;
+      this._labelEl.style.top   = `${topEdge.y - 22}px`;
+      this._labelEl.style.width = '180px';
+      this._labelEl.style.textAlign = 'center';
     }
-    let totalDelta = 0, totM = 0;
-    if (this._mesh) {
-      for (const s of this._mesh.regionStats) {
-        totalDelta += s.delta * s.m;
-        totM += s.m;
+
+    if (this._metaEl) {
+      const ch = this._channelMgr.channelCount;
+      const ev = this._channelMgr.eventCount;
+      const paths = this._channelMgr.columnCount;
+      let totalDelta = 0, totM = 0;
+      if (this._mesh) {
+        for (const s of this._mesh.regionStats) {
+          totalDelta += s.delta * s.m;
+          totM += s.m;
+        }
       }
-    }
-    const avgDelta = totM > 0 ? totalDelta / totM : 0;
+      const avgDelta = totM > 0 ? totalDelta / totM : 0;
 
-    this._metaEl.textContent = `${events} events · ${cols} columns · δ̄ ${avgDelta.toFixed(3)}`;
-    this._metaEl.style.left  = `${botEdge.x - 110}px`;
-    this._metaEl.style.top   = `${botEdge.y + 4}px`;
-    this._metaEl.style.width = '220px';
-    this._metaEl.style.textAlign = 'center';
+      this._metaEl.textContent = `${ch} ch · ${ev} ev · ${paths} pa · δ̄ ${avgDelta.toFixed(3)}`;
+      this._metaEl.style.left  = `${botEdge.x - 110}px`;
+      this._metaEl.style.top   = `${botEdge.y + 4}px`;
+      this._metaEl.style.width = '220px';
+      this._metaEl.style.textAlign = 'center';
+    }
   }
 
   // ────────────────────────────────────────────

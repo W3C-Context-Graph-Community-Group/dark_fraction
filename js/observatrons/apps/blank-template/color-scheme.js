@@ -2,23 +2,21 @@ import * as THREE from 'three';
 
 const PRESETS = {
   default: {
-    regionColor(delta) {
-      const d = Math.max(0, Math.min(1, delta));
-      return new THREE.Color(d, 0, 1 - d);
-    },
+    sphereColor: 0x3a3a42,       // dark gray metallic
+    channelColor: 0xccaa00,      // yellow hole interior
+    channelRimColor: 0xffdd33,   // bright yellow rim
     spikeColor(frac) {
       const f = Math.max(0, Math.min(1, frac));
-      return new THREE.Color(1 - f, 0.05, f);
+      // unverified = dull teal, verified = bright cyan-white
+      return new THREE.Color(0.25 + f * 0.75, 0.45 + f * 0.55, 0.5 + f * 0.5);
     },
-    emptyColor: 0x202035,
+    emptyColor: 0x2a2a30,
   },
 
   heat: {
-    regionColor(delta) {
-      const d = Math.max(0, Math.min(1, delta));
-      // black -> orange -> yellow
-      return new THREE.Color(d, d * 0.55, d * d * 0.1);
-    },
+    sphereColor: 0x2a2018,
+    channelColor: 0xcc8800,
+    channelRimColor: 0xffaa22,
     spikeColor(frac) {
       const f = Math.max(0, Math.min(1, frac));
       return new THREE.Color(0.9, 0.2 + f * 0.6, f * 0.15);
@@ -27,11 +25,9 @@ const PRESETS = {
   },
 
   ice: {
-    regionColor(delta) {
-      const d = Math.max(0, Math.min(1, delta));
-      // dark-blue -> cyan -> white
-      return new THREE.Color(0.15 + d * 0.85, 0.2 + d * 0.8, 0.4 + d * 0.6);
-    },
+    sphereColor: 0x1a2530,
+    channelColor: 0xbbaa22,
+    channelRimColor: 0xddcc44,
     spikeColor(frac) {
       const f = Math.max(0, Math.min(1, frac));
       return new THREE.Color(0.3 + f * 0.7, 0.6 + f * 0.4, 0.8 + f * 0.2);
@@ -40,11 +36,9 @@ const PRESETS = {
   },
 
   mono: {
-    regionColor(delta) {
-      const d = Math.max(0, Math.min(1, delta));
-      const g = 0.15 + d * 0.7;
-      return new THREE.Color(g, g, g);
-    },
+    sphereColor: 0x2a2a2a,
+    channelColor: 0x999933,
+    channelRimColor: 0xbbbb55,
     spikeColor(frac) {
       const f = Math.max(0, Math.min(1, frac));
       const g = 0.3 + f * 0.6;
@@ -72,8 +66,16 @@ export class ColorScheme {
     if (this.onChange) this.onChange(name);
   }
 
-  regionColor(delta) {
-    return this._preset.regionColor(delta);
+  get sphereColor() {
+    return this._preset.sphereColor;
+  }
+
+  get channelColor() {
+    return this._preset.channelColor;
+  }
+
+  get channelRimColor() {
+    return this._preset.channelRimColor;
   }
 
   spikeColor(verifiedFrac) {
