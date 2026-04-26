@@ -91,6 +91,7 @@ export class RangeControl {
     this._el.appendChild(this._resetBtn);
 
     this._updateTrack();
+    this._updateThumbVisibility();
     return this._el;
   }
 
@@ -126,6 +127,7 @@ export class RangeControl {
     this._loSlider.value = String(v);
     this._updateDisplay();
     this._updateTrack();
+    this._updateThumbVisibility();
     this._onChange({ min: this._lo, max: this._hi });
   }
 
@@ -136,6 +138,7 @@ export class RangeControl {
     this._hiSlider.value = String(v);
     this._updateDisplay();
     this._updateTrack();
+    this._updateThumbVisibility();
     this._onChange({ min: this._lo, max: this._hi });
   }
 
@@ -146,6 +149,7 @@ export class RangeControl {
     this._hiSlider.value = String(this._hi);
     this._updateDisplay();
     this._updateTrack();
+    this._updateThumbVisibility();
     this._onChange({ min: this._lo, max: this._hi });
   }
 
@@ -159,6 +163,12 @@ export class RangeControl {
 
   /** Bring the nearest thumb to the top so it can always be grabbed. */
   _handlePointerDown(e) {
+    // When both thumbs overlap, always prefer hi so it can be dragged apart
+    if (this._lo === this._hi) {
+      this._loSlider.style.zIndex = '1';
+      this._hiSlider.style.zIndex = '2';
+      return;
+    }
     const rect = this._sliderWrap.getBoundingClientRect();
     const clickFrac = (e.clientX - rect.left) / rect.width;
     const span = this._ceiling - this._floor;
@@ -166,13 +176,19 @@ export class RangeControl {
     const hiFrac = (this._hi - this._floor) / span;
     const distLo = Math.abs(clickFrac - loFrac);
     const distHi = Math.abs(clickFrac - hiFrac);
-    if (distLo <= distHi) {
+    if (distLo < distHi) {
       this._loSlider.style.zIndex = '2';
       this._hiSlider.style.zIndex = '1';
     } else {
       this._loSlider.style.zIndex = '1';
       this._hiSlider.style.zIndex = '2';
     }
+  }
+
+  /** Hide lo thumb when it overlaps hi so hi is always reachable. */
+  _updateThumbVisibility() {
+    if (!this._loSlider) return;
+    this._loSlider.classList.toggle('range-control__slider--collapsed', this._lo === this._hi);
   }
 
   /** Colour the track between the two thumbs. */

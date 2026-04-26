@@ -8,6 +8,9 @@ import { LegendControl }       from './controls/legend/legend-control.js';
 import { ColorSchemeControl }  from './controls/color-scheme/color-scheme-control.js';
 import { GridControl }         from './controls/grid/grid-control.js';
 import { RangeControl }         from './controls/range/range-control.js';
+import { RotationControl }     from './controls/rotation/rotation-control.js';
+import { FilterGroupControl }  from './controls/filter-group/filter-group-control.js';
+import { DocsControl }         from './controls/docs/docs-control.js';
 
 const scheme = new ColorScheme('default');
 const obs = new Observatron(document.getElementById('canvas-wrap'));
@@ -19,6 +22,7 @@ panel.register(new LegendControl());
 panel.register(new SaveImageControl({
   onSave: () => obs.saveImage('observatron.png'),
 }));
+panel.register(new DocsControl());
 
 const zoomCtrl = new ZoomControl({
   onZoom: () => { obs.fitCamera(); obs._updateLabels(); },
@@ -28,28 +32,40 @@ obs.zoomCtrl = zoomCtrl;
 obs.fitCamera();
 panel.register(zoomCtrl);
 
-panel.register(new RangeControl({
-  label: 'Channels',
-  onChange: (range) => { obs.channelsRange = range; },
-  min: 1, max: 6, initialMin: 1, initialMax: 1,
-}));
+const rotCtrl = new RotationControl({
+  onRotate: (axis, radians) => obs.setRotation(axis, radians),
+});
+obs.onRotationChange = (x, y, z) => rotCtrl.update(x, y, z);
+panel.register(rotCtrl);
 
-panel.register(new RangeControl({
-  label: 'Events',
-  onChange: (range) => { obs.eventsRange = range; },
-  min: 1, max: 10, initialMin: 1, initialMax: 3,
-}));
-
-panel.register(new RangeControl({
-  label: 'Anchors',
-  onChange: (range) => { obs.anchorsRange = range; },
-  min: 1, max: 5, initialMin: 1, initialMax: 1,
-}));
-
-panel.register(new RangeControl({
-  label: 'Paths',
-  onChange: (range) => { obs.pathsRange = range; },
-  min: 1, max: 20, initialMin: 1, initialMax: 5,
+panel.register(new FilterGroupControl({
+  controls: [
+    new RangeControl({
+      label: 'Channels',
+      onChange: (range) => { obs.channelsRange = range; },
+      min: 1, max: 6, initialMin: 1, initialMax: 1,
+    }),
+    new RangeControl({
+      label: 'Events',
+      onChange: (range) => { obs.eventsRange = range; },
+      min: 1, max: 10, initialMin: 1, initialMax: 3,
+    }),
+    new RangeControl({
+      label: 'Anchors',
+      onChange: (range) => { obs.anchorsRange = range; },
+      min: 1, max: 5, initialMin: 1, initialMax: 1,
+    }),
+    new RangeControl({
+      label: 'Paths',
+      onChange: (range) => { obs.pathsRange = range; },
+      min: 1, max: 20, initialMin: 1, initialMax: 5,
+    }),
+    new RangeControl({
+      label: 'Visible Ch.',
+      onChange: (range) => { obs.visibleChannels = range; },
+      min: 0, max: 5, initialMin: 0, initialMax: 0,
+    }),
+  ],
 }));
 
 panel.register(new ColorSchemeControl({
@@ -156,11 +172,15 @@ function animateReset() {
   // normalise to nearest multiple of 2π so we take the short path to 0
   r.x = ((r.x % (Math.PI * 2)) + Math.PI * 3) % (Math.PI * 2) - Math.PI;
   r.y = ((r.y % (Math.PI * 2)) + Math.PI * 3) % (Math.PI * 2) - Math.PI;
+  r.z = ((r.z % (Math.PI * 2)) + Math.PI * 3) % (Math.PI * 2) - Math.PI;
   function step() {
     r.x *= 0.85;
     r.y *= 0.85;
-    if (Math.abs(r.x) < 0.001 && Math.abs(r.y) < 0.001) {
-      r.x = 0; r.y = 0;
+    r.z *= 0.85;
+    rotCtrl.update(r.x, r.y, r.z);
+    if (Math.abs(r.x) < 0.001 && Math.abs(r.y) < 0.001 && Math.abs(r.z) < 0.001) {
+      r.x = 0; r.y = 0; r.z = 0;
+      rotCtrl.update(0, 0, 0);
       resetAnim = null;
       return;
     }

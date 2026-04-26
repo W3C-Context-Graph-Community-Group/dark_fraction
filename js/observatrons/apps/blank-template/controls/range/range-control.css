@@ -86,6 +86,16 @@
   pointer-events: auto;
 }
 
+/* when lo === hi, hide the lo thumb so hi is always grabbable */
+.range-control__slider--collapsed::-webkit-slider-thumb {
+  pointer-events: none;
+  opacity: 0;
+}
+.range-control__slider--collapsed::-moz-range-thumb {
+  pointer-events: none;
+  opacity: 0;
+}
+
 .range-control__reset {
   background: none;
   border: none;
