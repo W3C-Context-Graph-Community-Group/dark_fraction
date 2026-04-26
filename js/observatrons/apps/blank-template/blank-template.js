@@ -9,8 +9,9 @@ import { ColorSchemeControl }  from './controls/color-scheme/color-scheme-contro
 import { GridControl }         from './controls/grid/grid-control.js';
 import { RangeControl }         from './controls/range/range-control.js';
 import { RotationControl }     from './controls/rotation/rotation-control.js';
-import { FilterGroupControl }  from './controls/filter-group/filter-group-control.js';
-import { DocsControl }         from './controls/docs/docs-control.js';
+import { CollapsibleCard }     from './controls/collapsible-card.js';
+import { FiberBundleControl }  from './controls/fiber-bundle/fiber-bundle-control.js';
+import { FiberBundleManager } from '../../core/helpers/fiber_bundle/FiberBundleManager.js';
 
 const scheme = new ColorScheme('default');
 const obs = new Observatron(document.getElementById('canvas-wrap'));
@@ -22,7 +23,6 @@ panel.register(new LegendControl());
 panel.register(new SaveImageControl({
   onSave: () => obs.saveImage('observatron.png'),
 }));
-panel.register(new DocsControl());
 
 const zoomCtrl = new ZoomControl({
   onZoom: () => { obs.fitCamera(); obs._updateLabels(); },
@@ -34,45 +34,62 @@ panel.register(zoomCtrl);
 
 const rotCtrl = new RotationControl({
   onRotate: (axis, radians) => obs.setRotation(axis, radians),
+  showTitle: false,
 });
 obs.onRotationChange = (x, y, z) => rotCtrl.update(x, y, z);
-panel.register(rotCtrl);
 
-panel.register(new FilterGroupControl({
-  controls: [
-    new RangeControl({
-      label: 'Channels',
-      onChange: (range) => { obs.channelsRange = range; },
-      min: 1, max: 6, initialMin: 1, initialMax: 1,
-    }),
-    new RangeControl({
-      label: 'Events',
-      onChange: (range) => { obs.eventsRange = range; },
-      min: 1, max: 10, initialMin: 1, initialMax: 3,
-    }),
-    new RangeControl({
-      label: 'Anchors',
-      onChange: (range) => { obs.anchorsRange = range; },
-      min: 1, max: 5, initialMin: 1, initialMax: 1,
-    }),
-    new RangeControl({
-      label: 'Paths',
-      onChange: (range) => { obs.pathsRange = range; },
-      min: 1, max: 20, initialMin: 1, initialMax: 5,
-    }),
-    new RangeControl({
-      label: 'Visible Ch.',
-      onChange: (range) => { obs.visibleChannels = range; },
-      min: 0, max: 5, initialMin: 0, initialMax: 0,
-    }),
-  ],
+const rotCard = new CollapsibleCard({ label: 'Rotation', id: 'rotation' });
+rotCard.addControl('axes', rotCtrl);
+panel.register(rotCard);
+
+const filtersCard = new CollapsibleCard({ label: 'Filters', id: 'filters', layout: 'row' });
+filtersCard.addControl('channels', new RangeControl({
+  label: 'Channels',
+  onChange: (range) => { obs.channelsRange = range; },
+  min: 1, max: 6, initialMin: 1, initialMax: 1,
 }));
+filtersCard.addControl('events', new RangeControl({
+  label: 'Events',
+  onChange: (range) => { obs.eventsRange = range; },
+  min: 1, max: 10, initialMin: 1, initialMax: 3,
+}));
+filtersCard.addControl('anchors', new RangeControl({
+  label: 'Anchors',
+  onChange: (range) => { obs.anchorsRange = range; },
+  min: 1, max: 5, initialMin: 1, initialMax: 1,
+}));
+filtersCard.addControl('paths', new RangeControl({
+  label: 'Paths',
+  onChange: (range) => { obs.pathsRange = range; },
+  min: 1, max: 20, initialMin: 1, initialMax: 5,
+}));
+filtersCard.addControl('visible-ch', new RangeControl({
+  label: 'Visible Ch.',
+  onChange: (range) => { obs.visibleChannels = range; },
+  min: 0, max: 5, initialMin: 0, initialMax: 0,
+}));
+panel.register(filtersCard);
 
 panel.register(new ColorSchemeControl({
   schemes: ColorScheme.presets,
   initial: 'default',
   onScheme: (name) => scheme.set(name),
 }));
+
+/* ── Fiber bundles ── */
+const fiberMgr = new FiberBundleManager({
+  pivot: obs._pivot,
+  getSpikeInfo: (i) => obs.getSpikeInfo(i),
+});
+
+const fiberCard = new CollapsibleCard({ label: 'Fiber Bundles', id: 'fiber-bundles' });
+fiberCard.addControl('ring', new FiberBundleControl({
+  onToggle: (active) => {
+    if (active) { fiberMgr.showRing(); fiberMgr.showWires(); }
+    else        { fiberMgr.hideWires(); fiberMgr.hideRing(); }
+  },
+}));
+panel.register(fiberCard);
 
 /* ── Grid dots ── */
 let gridBack = null;   // blue dots behind the 2D box

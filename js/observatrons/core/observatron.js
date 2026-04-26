@@ -1,11 +1,12 @@
 import * as THREE from 'three';
 import { ObservatronChannelManager } from './channel-manager.js';
-import { disposeGroup } from './helpers/math-utils.js';
+import { disposeGroup, OBS_RADIUS } from './helpers/math-utils.js';
 import { SceneManager } from './helpers/scene-manager.js';
 import { SpikeBuilder } from './helpers/spike-builder.js';
 import { ConnectionBuilder } from './helpers/connection-builder.js';
 import { DragHandler } from './helpers/drag-handler.js';
 import { LabelManager } from './helpers/label-manager.js';
+import { FacetHeight } from './facet-height.js';
 
 // ============================================================
 // Observatron — manager class composing modular helpers
@@ -143,6 +144,21 @@ export class Observatron {
     this._labels.update(this._channelMgr, this._mesh, this._connectionStats);
   }
 
+  getSpikeInfo(index) {
+    if (!this._mesh || !this._mesh.dirs || index < 0 || index >= this._mesh.dirs.length) return null;
+    const dir = this._mesh.dirs[index];
+    const sp  = this._mesh.spikes[index];
+    const n   = this._mesh.spikes.length;
+    const baseEdge      = FacetHeight.baseEdge(n, OBS_RADIUS);
+    const baseHeightRef = baseEdge * Math.sqrt(2 / 3);
+    const hTetra        = FacetHeight.spikeHeight(baseHeightRef, sp.v, OBS_RADIUS);
+    return {
+      direction: dir.clone(),
+      base:      dir.clone().multiplyScalar(OBS_RADIUS * 1.003),
+      apex:      dir.clone().multiplyScalar(OBS_RADIUS + hTetra),
+    };
+  }
+
   // ────────────────────────────────────────────
   // COMMAND MAP
   // ────────────────────────────────────────────
@@ -212,7 +228,7 @@ export class Observatron {
 
     if (n === 0) {
       SpikeBuilder.buildGeometry(group, spikes, regionStats, [], [], this._colorScheme);
-      return { group, n: 0, regionStats };
+      return { group, n: 0, regionStats, dirs: [], spikes };
     }
 
     const { channels, dirs, channelSpikeIndices } = SpikeBuilder.computeLayout(spikes, regionStats);
@@ -223,6 +239,6 @@ export class Observatron {
       group, spikes, dirs, channelSpikeIndices, this._visibleChannels,
     );
 
-    return { group, n, regionStats };
+    return { group, n, regionStats, dirs, spikes };
   }
 }

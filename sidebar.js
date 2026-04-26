@@ -68,6 +68,7 @@
     { id: '_hr' },
     { id: 'calculator',   label: 'Calculator',   href: '../calculator/' },
     { id: 'observatrons', label: 'Observatrons', href: '../observatrons/' },
+    { id: 'docs',         label: 'Docs',         href: '../docs/' },
     { id: 'ui-bindings',  label: 'UI Bindings',  href: '../ui-bindings/' },
     { id: 'demo',         label: 'Demo',         href: '../demo/' }
   ];
@@ -75,7 +76,7 @@
   var linksHtml = links.map(function (link) {
     if (link.id === '_hr') return '<hr />';
     var cls = link.id === activePage ? ' class="active"' : '';
-    return '<a href="' + link.href + '"' + cls + '>' + link.label + '</a>';
+    return '<a href="' + link.href + '"' + cls + ' target="_blank">' + link.label + '</a>';
   }).join('');
 
   var darkCls = mode === 'dark' ? ' dark-mode' : '';

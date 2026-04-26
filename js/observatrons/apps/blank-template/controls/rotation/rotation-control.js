@@ -4,9 +4,11 @@ export class RotationControl {
   /**
    * @param {object} opts
    * @param {(axis: 'x'|'y'|'z', radians: number) => void} opts.onRotate
+   * @param {boolean} [opts.showTitle=true] — set false when wrapped in a CollapsibleCard
    */
-  constructor({ onRotate }) {
+  constructor({ onRotate, showTitle = true }) {
     this._onRotate = onRotate;
+    this._showTitle = showTitle;
     this._el = null;
     this._sliderX = null;
     this._sliderY = null;
@@ -24,11 +26,13 @@ export class RotationControl {
     this._el = document.createElement('div');
     this._el.className = 'rotation-control';
 
-    const title = document.createElement('div');
-    title.className = 'control-panel__label';
-    title.textContent = 'Rotation';
-    title.style.marginBottom = '0';
-    this._el.appendChild(title);
+    if (this._showTitle) {
+      const title = document.createElement('div');
+      title.className = 'control-panel__label';
+      title.textContent = 'Rotation';
+      title.style.marginBottom = '0';
+      this._el.appendChild(title);
+    }
 
     const { slider: sy, display: dy } = this._buildAxis('Yaw (Y)', (v) => {
       this._onRotate('y', v * DEG);
