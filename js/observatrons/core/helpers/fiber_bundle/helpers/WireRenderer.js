@@ -30,7 +30,7 @@ export class WireRenderer {
    */
   constructor({ type, slotIndex, ringPosition, ringNormal, ringRadius,
                 targetRingPosition, targetRingNormal, targetRingRadius,
-                color, loopRadius = 0.04, tubeRadius = 0.002, opacity = 0.9,
+                color, loopRadius = 0.04, tubeRadius = 0.004, opacity = 0.9,
                 luminosityStart = 1.0, luminosityEnd = 1.0 }) {
     const def = WIRE_TYPES.find(w => w.type === type) || WIRE_TYPES[slotIndex] || WIRE_TYPES[0];
     this._type       = def.type;

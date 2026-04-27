@@ -1,16 +1,18 @@
 export class EventsControl {
   /**
    * @param {object} opts
-   * @param {(connectionIds: string[]) => void} opts.onCompare — called with all listed connection ids
+   * @param {(connectionIds: string[], duration: number) => void} opts.onCompare — called with all listed connection ids and duration in seconds
    */
   constructor({ onCompare }) {
     this._onCompare = onCompare;
     this._connections = [];    // { id, source, target }
-    this._active = false;
+    this._duration = 0.5;      // seconds (default)
     this._el = null;
     this._list = null;
     this._compareBtn = null;
     this._emptyMsg = null;
+    this._speedSlider = null;
+    this._speedValue = null;
   }
 
   get cssURL() {
@@ -31,6 +33,32 @@ export class EventsControl {
     this._emptyMsg.className = 'events-control__empty';
     this._emptyMsg.textContent = 'No connections';
     this._list.appendChild(this._emptyMsg);
+
+    // Speed slider row
+    const speedRow = document.createElement('div');
+    speedRow.className = 'events-control__row';
+
+    const speedLabel = document.createElement('span');
+    speedLabel.className = 'events-control__label';
+    speedLabel.textContent = 'Speed';
+    speedRow.appendChild(speedLabel);
+
+    this._speedValue = document.createElement('span');
+    this._speedValue.className = 'events-control__slider-value';
+    this._speedValue.textContent = '0.50s';
+    speedRow.appendChild(this._speedValue);
+
+    this._speedSlider = document.createElement('input');
+    this._speedSlider.type = 'range';
+    this._speedSlider.className = 'events-control__slider';
+    this._speedSlider.min = '0.25';
+    this._speedSlider.max = '4';
+    this._speedSlider.step = '0.05';
+    this._speedSlider.value = '0.5';
+    this._speedSlider.addEventListener('input', () => this._handleSpeedChange());
+    speedRow.appendChild(this._speedSlider);
+
+    this._el.appendChild(speedRow);
 
     // Compare button row
     const btnRow = document.createElement('div');
@@ -62,9 +90,6 @@ export class EventsControl {
       this._emptyMsg.className = 'events-control__empty';
       this._emptyMsg.textContent = 'No connections';
       this._list.appendChild(this._emptyMsg);
-      // Reset active state when connections change
-      this._active = false;
-      this._syncBtn();
       return;
     }
 
@@ -79,10 +104,6 @@ export class EventsControl {
 
       this._list.appendChild(row);
     }
-
-    // Reset active state when connections change
-    this._active = false;
-    this._syncBtn();
   }
 
   dispose() {
@@ -90,18 +111,18 @@ export class EventsControl {
     this._list = null;
     this._compareBtn = null;
     this._emptyMsg = null;
+    this._speedSlider = null;
+    this._speedValue = null;
+  }
+
+  _handleSpeedChange() {
+    this._duration = parseFloat(this._speedSlider.value);
+    this._speedValue.textContent = this._duration.toFixed(2) + 's';
   }
 
   _handleCompare() {
     if (this._connections.length === 0) return;
-    this._active = !this._active;
-    this._syncBtn();
     const ids = this._connections.map(c => c.id);
-    this._onCompare(ids);
-  }
-
-  _syncBtn() {
-    if (!this._compareBtn) return;
-    this._compareBtn.classList.toggle('events-control__btn--active', this._active);
+    this._onCompare(ids, this._duration);
   }
 }

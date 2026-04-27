@@ -315,9 +315,9 @@ new Draggable(fiberSection);
 
 /* ── Events card ── */
 const eventsCtrl = new EventsControl({
-  onCompare: (ids) => {
-    // Toggle all listed connections at once
-    for (const id of ids) animator.toggle(id);
+  onCompare: (ids, duration) => {
+    animator.stopAll();
+    for (const id of ids) animator.startOnConnection(id, duration);
   },
 });
 
@@ -391,6 +391,7 @@ const networkCtrl = new NetworkControl({
           const nodeId = networkMgr.getNodeIndex(rotatedGroup);
           if (nodeId >= 0 && fiberMgr.pairVisible) {
             fiberMgr.refreshConnectionsForNode(nodeId);
+            animator.refreshAnimationsForNode(nodeId);
             fiberCtrl.updateConnectionsList(fiberMgr.connections);
             syncEventsPanel();
           }

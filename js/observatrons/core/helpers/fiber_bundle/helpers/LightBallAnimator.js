@@ -1,10 +1,9 @@
 import * as THREE from 'three';
 import { FiberPathSolver } from './FiberPathSolver.js';
-import { WIRE_TYPES } from './WireRenderer.js';
 
 /**
- * Drives a glowing ball of light from source ring to target ring
- * along a fiber path resolved by FiberPathSolver.
+ * Drives glowing balls of light from source ring to target ring
+ * along all five fiber paths resolved by FiberPathSolver.
  */
 export class LightBallAnimator {
   /**
@@ -17,15 +16,15 @@ export class LightBallAnimator {
     this._pivot           = pivot;
     this._connections     = connections;
     this._resolveEndpoint = resolveEndpoint;
-    this._animations      = new Map(); // connectionId → animation state
+    this._animations      = new Map(); // connectionId → { balls: [...] }
   }
 
   /**
-   * Start animating a light ball along a connection's fiber path.
+   * Start animating light balls along all 5 fibers of a connection.
    * @param {string} connectionId
-   * @param {string} [wireType='channel']
+   * @param {number} [duration=0.5] — seconds for the ball to travel source→target
    */
-  startOnConnection(connectionId, wireType = 'channel') {
+  startOnConnection(connectionId, duration = 0.5) {
     if (this._animations.has(connectionId)) return;
 
     const conn = this._connections.get(connectionId);
@@ -35,48 +34,39 @@ export class LightBallAnimator {
     const infoB = this._resolveEndpoint(conn.target.nodeId, conn.target.spikeIndex);
     if (!infoA || !infoB) return;
 
-    // Derive ring radii from the existing RingRenderer instances
     const radiusA = conn.rings[0] ? conn.rings[0]._radius : 0.03;
     const radiusB = conn.rings.length > 1 ? conn.rings[conn.rings.length - 1]._radius : 0.03;
 
-    const fiberPath = FiberPathSolver.resolveSingleFiber(wireType, {
-      position: infoA.apex,
-      normal:   infoA.direction,
-      radius:   radiusA,
-    }, {
-      position: infoB.apex,
-      normal:   infoB.direction,
-      radius:   radiusB,
-    });
+    const source = { position: infoA.apex, normal: infoA.direction, radius: radiusA };
+    const target = { position: infoB.apex, normal: infoB.direction, radius: radiusB };
 
-    if (!fiberPath) return;
+    const fiberPaths = FiberPathSolver.resolveBridge(source, target);
+    if (!fiberPaths || fiberPaths.length === 0) return;
 
-    // Look up wire color
-    const wt = WIRE_TYPES.find(w => w.type === wireType);
-    const wireColor = wt ? wt.color : 0xffffff;
+    const balls = [];
 
-    // Create ball mesh
-    const geo = new THREE.SphereGeometry(0.008, 12, 8);
-    const mat = new THREE.MeshBasicMaterial({ color: wireColor });
-    const ball = new THREE.Mesh(geo, mat);
+    for (const fiberPath of fiberPaths) {
+      const wireColor = fiberPath.color;
 
-    // Add subtle point light as child
-    const light = new THREE.PointLight(wireColor, 0.3, 0.15);
-    ball.add(light);
+      const geo = new THREE.SphereGeometry(0.014, 16, 10);
+      const mat = new THREE.MeshBasicMaterial({ color: wireColor, toneMapped: false });
+      const ball = new THREE.Mesh(geo, mat);
 
-    this._pivot.add(ball);
+      const light = new THREE.PointLight(wireColor, 0.8, 0.25);
+      ball.add(light);
 
-    // Set initial position
-    const p0 = fiberPath.getPointAtArcLength(0);
-    ball.position.set(p0.x, p0.y, p0.z);
+      this._pivot.add(ball);
+
+      const p0 = fiberPath.getPointAtArcLength(0);
+      ball.position.set(p0.x, p0.y, p0.z);
+
+      balls.push({ fiberPath, ball, u: 0 });
+    }
 
     this._animations.set(connectionId, {
       connectionId,
-      fiberPath,
-      u: 0,
-      speed: 0.15, // world-units per second
-      ball,
-      loop: true,
+      balls,
+      duration: Math.max(0.01, duration),
     });
   }
 
@@ -88,12 +78,12 @@ export class LightBallAnimator {
     const anim = this._animations.get(connectionId);
     if (!anim) return;
 
-    this._pivot.remove(anim.ball);
-    anim.ball.children.forEach(c => {
-      if (c.dispose) c.dispose();
-    });
-    anim.ball.geometry.dispose();
-    anim.ball.material.dispose();
+    for (const entry of anim.balls) {
+      this._pivot.remove(entry.ball);
+      entry.ball.children.forEach(c => { if (c.dispose) c.dispose(); });
+      entry.ball.geometry.dispose();
+      entry.ball.material.dispose();
+    }
 
     this._animations.delete(connectionId);
   }
@@ -101,12 +91,45 @@ export class LightBallAnimator {
   /**
    * Toggle animation on a connection — start if not running, stop if running.
    * @param {string} connectionId
+   * @param {number} [duration=0.5]
    */
-  toggle(connectionId) {
+  toggle(connectionId, duration = 0.5) {
     if (this._animations.has(connectionId)) {
       this.stopOnConnection(connectionId);
     } else {
-      this.startOnConnection(connectionId);
+      this.startOnConnection(connectionId, duration);
+    }
+  }
+
+  /**
+   * Rebuild fiber paths for running animations that involve a given node.
+   * Preserves current progress (u) so balls continue at the same fraction.
+   * @param {number} nodeId
+   */
+  refreshAnimationsForNode(nodeId) {
+    for (const [id, anim] of this._animations) {
+      const conn = this._connections.get(id);
+      if (!conn) continue;
+      if (conn.source.nodeId !== nodeId && conn.target.nodeId !== nodeId) continue;
+
+      const infoA = this._resolveEndpoint(conn.source.nodeId, conn.source.spikeIndex);
+      const infoB = this._resolveEndpoint(conn.target.nodeId, conn.target.spikeIndex);
+      if (!infoA || !infoB) continue;
+
+      const radiusA = conn.rings[0] ? conn.rings[0]._radius : 0.03;
+      const radiusB = conn.rings.length > 1 ? conn.rings[conn.rings.length - 1]._radius : 0.03;
+
+      const source = { position: infoA.apex, normal: infoA.direction, radius: radiusA };
+      const target = { position: infoB.apex, normal: infoB.direction, radius: radiusB };
+
+      const fiberPaths = FiberPathSolver.resolveBridge(source, target);
+      if (!fiberPaths || fiberPaths.length === 0) continue;
+
+      for (let i = 0; i < anim.balls.length && i < fiberPaths.length; i++) {
+        anim.balls[i].fiberPath = fiberPaths[i];
+        const pos = fiberPaths[i].getPointAtArcLength(anim.balls[i].u);
+        anim.balls[i].ball.position.set(pos.x, pos.y, pos.z);
+      }
     }
   }
 
@@ -123,22 +146,32 @@ export class LightBallAnimator {
    * @param {number} dt — delta time in seconds
    */
   tick(dt) {
-    for (const anim of this._animations.values()) {
-      const len = anim.fiberPath.totalLength;
-      if (len <= 0) continue;
+    const finished = [];
 
-      anim.u += (dt * anim.speed) / len;
+    for (const [id, anim] of this._animations) {
+      let allDone = true;
 
-      if (anim.u >= 1) {
-        if (anim.loop) {
-          anim.u = anim.u % 1;
+      for (const entry of anim.balls) {
+        if (entry.u >= 1) continue;
+
+        entry.u += dt / anim.duration;
+
+        if (entry.u >= 1) {
+          entry.u = 1;
         } else {
-          anim.u = 1;
+          allDone = false;
         }
+
+        const pos = entry.fiberPath.getPointAtArcLength(entry.u);
+        entry.ball.position.set(pos.x, pos.y, pos.z);
       }
 
-      const pos = anim.fiberPath.getPointAtArcLength(anim.u);
-      anim.ball.position.set(pos.x, pos.y, pos.z);
+      if (allDone) finished.push(id);
+    }
+
+    // Auto-remove completed animations
+    for (const id of finished) {
+      this.stopOnConnection(id);
     }
   }
 
