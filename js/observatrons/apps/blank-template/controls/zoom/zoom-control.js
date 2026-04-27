@@ -7,12 +7,13 @@ export class ZoomControl {
    * @param {number} [opts.initial=1.0]
    * @param {number} [opts.step=0.05]
    */
-  constructor({ onZoom, min = 0.25, max = 3.0, initial = 1.0, step = 0.05 }) {
+  constructor({ onZoom, min = 0.25, max = 3.0, initial = 1.0, step = 0.05, showTitle = true }) {
     this._onZoom = onZoom;
     this._min = min;
     this._max = max;
     this._step = step;
     this._value = initial;
+    this._showTitle = showTitle;
     this._el = null;
     this._slider = null;
     this._display = null;
@@ -36,11 +37,13 @@ export class ZoomControl {
     const labelRow = document.createElement('div');
     labelRow.className = 'zoom-control__row';
 
-    const label = document.createElement('div');
-    label.className = 'control-panel__label';
-    label.textContent = 'Zoom';
-    label.style.marginBottom = '0';
-    labelRow.appendChild(label);
+    if (this._showTitle) {
+      const label = document.createElement('div');
+      label.className = 'control-panel__label';
+      label.textContent = 'Zoom';
+      label.style.marginBottom = '0';
+      labelRow.appendChild(label);
+    }
 
     this._display = document.createElement('span');
     this._display.className = 'zoom-control__value';

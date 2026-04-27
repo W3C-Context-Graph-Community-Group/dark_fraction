@@ -80,15 +80,24 @@ panel.register(new ColorSchemeControl({
 const fiberMgr = new FiberBundleManager({
   pivot: obs._pivot,
   getSpikeInfo: (i) => obs.getSpikeInfo(i),
+  observatronAddress: obs.observatronAddress,
+});
+
+const fiberCtrl = new FiberBundleControl({
+  onToggle: (active) => {
+    if (active) { fiberCtrl.setSpikeCount(obs.spikeCount); fiberMgr.showPairs(0, 1); }
+    else        { fiberMgr.hidePairs(); }
+  },
+  onSlide: (spikeIndex) => {
+    if (fiberMgr.pairVisible) fiberMgr.showPairs(spikeIndex, fiberCtrl.pairCount);
+  },
+  onPairsChange: (count) => {
+    if (fiberMgr.pairVisible) fiberMgr.showPairs(fiberCtrl.spikeIndex, count);
+  },
 });
 
 const fiberCard = new CollapsibleCard({ label: 'Fiber Bundles', id: 'fiber-bundles' });
-fiberCard.addControl('ring', new FiberBundleControl({
-  onToggle: (active) => {
-    if (active) { fiberMgr.showRing(); fiberMgr.showWires(); }
-    else        { fiberMgr.hideWires(); fiberMgr.hideRing(); }
-  },
-}));
+fiberCard.addControl('ring', fiberCtrl);
 panel.register(fiberCard);
 
 /* ── Grid dots ── */

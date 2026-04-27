@@ -18,12 +18,16 @@ export class WireRenderer {
    * @param {THREE.Vector3} opts.ringPosition — ring center in pivot-local space
    * @param {THREE.Vector3} opts.ringNormal   — ring normal (spike direction)
    * @param {number} opts.ringRadius   — radius of the ring
+   * @param {THREE.Vector3} [opts.targetRingPosition] — target ring center (bridge mode)
+   * @param {THREE.Vector3} [opts.targetRingNormal]   — target ring normal (bridge mode)
+   * @param {number}        [opts.targetRingRadius]   — target ring radius (bridge mode)
    * @param {number} [opts.color]      — override default color
    * @param {number} [opts.loopRadius=0.04]
    * @param {number} [opts.tubeRadius=0.002]
    * @param {number} [opts.opacity=0.9]
    */
   constructor({ type, slotIndex, ringPosition, ringNormal, ringRadius,
+                targetRingPosition, targetRingNormal, targetRingRadius,
                 color, loopRadius = 0.04, tubeRadius = 0.002, opacity = 0.9 }) {
     const def = WIRE_TYPES.find(w => w.type === type) || WIRE_TYPES[slotIndex] || WIRE_TYPES[0];
     this._type       = def.type;
@@ -32,6 +36,9 @@ export class WireRenderer {
     this._ringPos    = ringPosition;
     this._ringNormal = ringNormal;
     this._ringRadius = ringRadius;
+    this._targetPos    = targetRingPosition ?? null;
+    this._targetNormal = targetRingNormal ?? null;
+    this._targetRadius = targetRingRadius ?? null;
     this._color      = color ?? def.color;
     this._loopRadius = loopRadius;
     this._tubeRadius = tubeRadius;
@@ -44,6 +51,13 @@ export class WireRenderer {
   get label() { return this._label; }
 
   build() {
+    if (this._targetPos) {
+      return this._buildBridge();
+    }
+    return this._buildLoop();
+  }
+
+  _buildLoop() {
     const theta = this._slotIndex * (2 * Math.PI / 5);
 
     // Radial direction at plug point (in ring-local frame, ring lies in XY)
@@ -74,6 +88,39 @@ export class WireRenderer {
 
     const curve = new THREE.CatmullRomCurve3(worldPts, true);
     const geo = new THREE.TubeGeometry(curve, 128, this._tubeRadius, 8, true);
+    const mat = new THREE.MeshBasicMaterial({
+      color:       this._color,
+      transparent: this._opacity < 1,
+      opacity:     this._opacity,
+    });
+
+    this._mesh = new THREE.Mesh(geo, mat);
+    return this._mesh;
+  }
+
+  _buildBridge() {
+    const theta = this._slotIndex * (2 * Math.PI / 5);
+
+    // Plug A on source ring
+    const radialA = new THREE.Vector3(Math.cos(theta), Math.sin(theta), 0);
+    const plugALocal = radialA.clone().multiplyScalar(this._ringRadius);
+    const quatA = new THREE.Quaternion().setFromUnitVectors(_Z, this._ringNormal);
+    const plugA = plugALocal.applyQuaternion(quatA).add(this._ringPos);
+
+    // Plug B on target ring
+    const radialB = new THREE.Vector3(Math.cos(theta), Math.sin(theta), 0);
+    const plugBLocal = radialB.clone().multiplyScalar(this._targetRadius);
+    const quatB = new THREE.Quaternion().setFromUnitVectors(_Z, this._targetNormal);
+    const plugB = plugBLocal.applyQuaternion(quatB).add(this._targetPos);
+
+    // Midpoint offset outward from origin for visual clearance
+    const mid = plugA.clone().add(plugB).multiplyScalar(0.5);
+    const outward = mid.clone().normalize();
+    const dist = plugA.distanceTo(plugB);
+    mid.addScaledVector(outward, dist * 0.3);
+
+    const curve = new THREE.CatmullRomCurve3([plugA, mid, plugB], false);
+    const geo = new THREE.TubeGeometry(curve, 64, this._tubeRadius, 8, false);
     const mat = new THREE.MeshBasicMaterial({
       color:       this._color,
       transparent: this._opacity < 1,

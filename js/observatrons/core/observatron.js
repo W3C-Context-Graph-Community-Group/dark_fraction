@@ -131,6 +131,9 @@ export class Observatron {
 
   // ── expose internals needed by the app shell ──
 
+  get spikeCount() { return this._mesh ? this._mesh.spikes.length : 0; }
+  get observatronAddress() { return this._channelMgr.observatronUrl; }
+
   get _bgCube()   { return this._sceneMgr.bgCube; }
   get _bgCorner() { return this._sceneMgr.bgCorner; }
   get _pivot()    { return this._sceneMgr.pivot; }
