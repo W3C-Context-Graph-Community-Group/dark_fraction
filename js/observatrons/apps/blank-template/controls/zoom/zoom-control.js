@@ -18,6 +18,7 @@ export class ZoomControl {
     this._slider = null;
     this._display = null;
     this._boundInput = this._handleInput.bind(this);
+    this._boundWheel = this._handleWheel.bind(this);
   }
 
   /** Current zoom multiplier */
@@ -59,11 +60,14 @@ export class ZoomControl {
     this._slider.addEventListener('input', this._boundInput);
     this._el.appendChild(this._slider);
 
+    addEventListener('wheel', this._boundWheel, { passive: false });
+
     return this._el;
   }
 
   dispose() {
     if (this._slider) this._slider.removeEventListener('input', this._boundInput);
+    removeEventListener('wheel', this._boundWheel);
     this._el = null;
     this._slider = null;
     this._display = null;
@@ -80,6 +84,20 @@ export class ZoomControl {
     this._value = parseFloat(this._slider.value);
     this._updateDisplay();
     this._onZoom();
+  }
+
+  _handleWheel(e) {
+    // Scroll down (positive deltaY) → zoom out (increase value)
+    // Scroll up (negative deltaY) → zoom in (decrease value)
+    const delta = Math.sign(e.deltaY) * this._step * 3;
+    const clamped = Math.min(this._max, Math.max(this._min, this._value + delta));
+    if (clamped !== this._value) {
+      e.preventDefault();
+      this._value = clamped;
+      if (this._slider) this._slider.value = String(this._value);
+      this._updateDisplay();
+      this._onZoom();
+    }
   }
 
   _updateDisplay() {

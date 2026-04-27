@@ -9,6 +9,16 @@ import { ConnectionTracker } from './helpers/ConnectionTracker.js';
 // ./helpers/ do the actual rendering work.
 // ============================================================
 
+function lerp(a, b, t) { return a + (b - a) * t; }
+function lerpColor(a, b, t) {
+  const ar = (a >> 16) & 0xff, ag = (a >> 8) & 0xff, ab = a & 0xff;
+  const br = (b >> 16) & 0xff, bg = (b >> 8) & 0xff, bb = b & 0xff;
+  const r = Math.round(lerp(ar, br, t));
+  const g = Math.round(lerp(ag, bg, t));
+  const blue = Math.round(lerp(ab, bb, t));
+  return (r << 16) | (g << 8) | blue;
+}
+
 export class FiberBundleManager {
   /**
    * @param {object}        opts
@@ -33,23 +43,43 @@ export class FiberBundleManager {
 
     const wireTypes = WIRE_TYPES.map(w => w.type);
 
-    // Phase 1: create all rings (pairCount + 1 total)
+    // Phase 1: create all rings (pairCount + 1 total) with directional coloring
     const infos = [];
     for (let i = startIndex; i <= startIndex + pairCount; i++) {
       const info = this._getSpikeInfo(i);
       if (!info) break;
 
-      const ring = new RingRenderer({ position: info.apex, normal: info.direction });
+      const j = i - startIndex;
+      const t = pairCount > 0 ? j / pairCount : 0;
+
+      // Interpolate ring appearance from source (white/emissive) to receiver (dark/matte)
+      const color             = lerpColor(0xffffff, 0x222222, t);
+      const emissive          = lerpColor(0xffffff, 0x000000, t);
+      const emissiveIntensity = lerp(0.15, 0, t);
+      const shininess         = lerp(60, 5, t);
+
+      const ring = new RingRenderer({
+        position: info.apex,
+        normal: info.direction,
+        color,
+        emissive,
+        emissiveIntensity,
+        shininess,
+      });
       this._pivot.add(ring.build());
       this._rings.push(ring);
       infos.push({ info, ring });
     }
 
-    // Phase 2: bridge wires between consecutive rings
+    // Phase 2: bridge wires between consecutive rings with luminosity fade
     for (let j = 0; j < infos.length - 1; j++) {
       const { info: infoA, ring: ringA } = infos[j];
       const { info: infoB, ring: ringB } = infos[j + 1];
-      this._showBridgeWires(infoA, ringA, infoB, ringB);
+
+      const lumStart = 1.0 - 0.3 * (j / pairCount);
+      const lumEnd   = 1.0 - 0.3 * ((j + 1) / pairCount);
+
+      this._showBridgeWires(infoA, ringA, infoB, ringB, lumStart, lumEnd);
       this._tracker.connect(startIndex + j, startIndex + j + 1, wireTypes);
     }
   }
@@ -79,7 +109,7 @@ export class FiberBundleManager {
 
   // ── Internal ───────────────────────────────────
 
-  _showBridgeWires(infoA, ringA, infoB, ringB) {
+  _showBridgeWires(infoA, ringA, infoB, ringB, lumStart, lumEnd) {
     const radiusA = ringA._radius;
     const radiusB = ringB._radius;
 
@@ -93,6 +123,8 @@ export class FiberBundleManager {
         targetRingPosition: infoB.apex.clone(),
         targetRingNormal:   infoB.direction.clone(),
         targetRingRadius:   radiusB,
+        luminosityStart:    lumStart,
+        luminosityEnd:      lumEnd,
       });
       wr.build();
       this._pivot.add(wr.mesh);

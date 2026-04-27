@@ -25,10 +25,13 @@ export class WireRenderer {
    * @param {number} [opts.loopRadius=0.04]
    * @param {number} [opts.tubeRadius=0.002]
    * @param {number} [opts.opacity=0.9]
+   * @param {number} [opts.luminosityStart=1.0] — brightness multiplier at source plug
+   * @param {number} [opts.luminosityEnd=1.0]   — brightness multiplier at target plug
    */
   constructor({ type, slotIndex, ringPosition, ringNormal, ringRadius,
                 targetRingPosition, targetRingNormal, targetRingRadius,
-                color, loopRadius = 0.04, tubeRadius = 0.002, opacity = 0.9 }) {
+                color, loopRadius = 0.04, tubeRadius = 0.002, opacity = 0.9,
+                luminosityStart = 1.0, luminosityEnd = 1.0 }) {
     const def = WIRE_TYPES.find(w => w.type === type) || WIRE_TYPES[slotIndex] || WIRE_TYPES[0];
     this._type       = def.type;
     this._label      = def.label;
@@ -43,6 +46,8 @@ export class WireRenderer {
     this._loopRadius = loopRadius;
     this._tubeRadius = tubeRadius;
     this._opacity    = opacity;
+    this._luminosityStart = luminosityStart;
+    this._luminosityEnd   = luminosityEnd;
     this._mesh       = null;
   }
 
@@ -119,12 +124,37 @@ export class WireRenderer {
     const dist = plugA.distanceTo(plugB);
     mid.addScaledVector(outward, dist * 0.3);
 
+    const tubularSegments = 64;
+    const radialSegments = 8;
     const curve = new THREE.CatmullRomCurve3([plugA, mid, plugB], false);
-    const geo = new THREE.TubeGeometry(curve, 64, this._tubeRadius, 8, false);
+    const geo = new THREE.TubeGeometry(curve, tubularSegments, this._tubeRadius, radialSegments, false);
+
+    // Apply per-vertex color for luminosity gradient
+    const baseColor = new THREE.Color(this._color);
+    const vertCount = (tubularSegments + 1) * (radialSegments + 1);
+    const colors = new Float32Array(vertCount * 3);
+
+    for (let seg = 0; seg <= tubularSegments; seg++) {
+      const t = seg / tubularSegments;
+      const lum = this._luminosityStart + (this._luminosityEnd - this._luminosityStart) * t;
+      const r = baseColor.r * lum;
+      const g = baseColor.g * lum;
+      const b = baseColor.b * lum;
+
+      for (let rad = 0; rad <= radialSegments; rad++) {
+        const idx = (seg * (radialSegments + 1) + rad) * 3;
+        colors[idx]     = r;
+        colors[idx + 1] = g;
+        colors[idx + 2] = b;
+      }
+    }
+
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
     const mat = new THREE.MeshBasicMaterial({
-      color:       this._color,
-      transparent: this._opacity < 1,
-      opacity:     this._opacity,
+      vertexColors: true,
+      transparent:  this._opacity < 1,
+      opacity:      this._opacity,
     });
 
     this._mesh = new THREE.Mesh(geo, mat);
