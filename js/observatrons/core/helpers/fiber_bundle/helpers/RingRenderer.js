@@ -11,25 +11,35 @@ export class RingRenderer {
    * @param {number}        [opts.tubeRadius=0.004] — tube thickness
    * @param {number}        [opts.color=0xffffff]
    * @param {number}        [opts.opacity=0.8]
+   * @param {number}        [opts.emissive=0x000000]
+   * @param {number}        [opts.emissiveIntensity=0]
+   * @param {number}        [opts.shininess=30]
    */
-  constructor({ position, normal, radius = 0.03, tubeRadius = 0.004, color = 0xffffff, opacity = 0.8 }) {
-    this._position   = position;
-    this._normal     = normal;
-    this._radius     = radius;
-    this._tubeRadius = tubeRadius;
-    this._color      = color;
-    this._opacity    = opacity;
-    this._mesh       = null;
+  constructor({ position, normal, radius = 0.03, tubeRadius = 0.004, color = 0xffffff, opacity = 0.8,
+                emissive = 0x000000, emissiveIntensity = 0, shininess = 30 }) {
+    this._position          = position;
+    this._normal            = normal;
+    this._radius            = radius;
+    this._tubeRadius        = tubeRadius;
+    this._color             = color;
+    this._opacity           = opacity;
+    this._emissive          = emissive;
+    this._emissiveIntensity = emissiveIntensity;
+    this._shininess         = shininess;
+    this._mesh              = null;
   }
 
   get mesh() { return this._mesh; }
 
   build() {
     const geo = new THREE.TorusGeometry(this._radius, this._tubeRadius, 16, 48);
-    const mat = new THREE.MeshBasicMaterial({
-      color:       this._color,
-      transparent: this._opacity < 1,
-      opacity:     this._opacity,
+    const mat = new THREE.MeshPhongMaterial({
+      color:             this._color,
+      emissive:          this._emissive,
+      emissiveIntensity: this._emissiveIntensity,
+      shininess:         this._shininess,
+      transparent:       this._opacity < 1,
+      opacity:           this._opacity,
     });
 
     this._mesh = new THREE.Mesh(geo, mat);

@@ -37,6 +37,11 @@ export class GridControl {
     this._btn.addEventListener('click', this._boundClick);
     this._el.appendChild(this._btn);
 
+    const lbl = document.createElement('span');
+    lbl.className = 'grid-control__label';
+    lbl.textContent = 'Grid';
+    this._el.appendChild(lbl);
+
     return this._el;
   }
 

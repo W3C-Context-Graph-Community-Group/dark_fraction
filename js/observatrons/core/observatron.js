@@ -35,6 +35,11 @@ export class Observatron {
     // ── rotation callback ──
     this._onRotationChange = null;
 
+    // ── pan state ──
+    this._panX = 0;
+    this._panY = 0;
+    this._onPanChange = null;
+
     // ── scene ──
     this._sceneMgr = new SceneManager(containerEl);
     this._sceneMgr.onResize = () => this._labels.update(this._channelMgr, this._mesh, this._connectionStats);
@@ -49,6 +54,7 @@ export class Observatron {
       this._sceneMgr.pivot,
       this._sceneMgr.camera,
       () => this._notifyRotation(),
+      (dx, dy) => this._handlePan(dx, dy),
     );
   }
 
@@ -85,6 +91,16 @@ export class Observatron {
   setRotation(axis, radians) {
     this._sceneMgr.pivot.rotation[axis] = radians;
     this._notifyRotation();
+  }
+
+  set onPanChange(fn) {
+    this._onPanChange = fn;
+  }
+
+  setPan(x, y) {
+    this._panX = x;
+    this._panY = y;
+    this._applyPan();
   }
 
   set colorScheme(cs) {
@@ -207,6 +223,21 @@ export class Observatron {
       const r = this._sceneMgr.pivot.rotation;
       this._onRotationChange(r.x, r.y, r.z);
     }
+  }
+
+  _handlePan(dx, dy) {
+    const cam = this._sceneMgr.camera;
+    const worldPerPixelX = (cam.right - cam.left) / innerWidth;
+    const worldPerPixelY = (cam.top - cam.bottom) / innerHeight;
+    this._panX -= dx * worldPerPixelX;
+    this._panY += dy * worldPerPixelY;
+    this._applyPan();
+    if (this._onPanChange) this._onPanChange(this._panX, this._panY);
+  }
+
+  _applyPan() {
+    this._sceneMgr.camera.position.x = this._panX;
+    this._sceneMgr.camera.position.y = this._panY;
   }
 
   // ────────────────────────────────────────────

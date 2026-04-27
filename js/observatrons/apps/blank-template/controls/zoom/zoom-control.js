@@ -7,19 +7,17 @@ export class ZoomControl {
    * @param {number} [opts.initial=1.0]
    * @param {number} [opts.step=0.05]
    */
-  constructor({ onZoom, min = 0.25, max = 3.0, initial = 1.0, step = 0.05, showTitle = true }) {
+  constructor({ onZoom, min = 0.25, max = 3.0, initial = 1.0, step = 0.05 }) {
     this._onZoom = onZoom;
     this._min = min;
     this._max = max;
     this._step = step;
     this._value = initial;
-    this._showTitle = showTitle;
+    this._initial = initial;
     this._el = null;
     this._slider = null;
     this._display = null;
-    this._resetBtn = null;
     this._boundInput = this._handleInput.bind(this);
-    this._boundReset = this._handleReset.bind(this);
   }
 
   /** Current zoom multiplier */
@@ -37,13 +35,11 @@ export class ZoomControl {
     const labelRow = document.createElement('div');
     labelRow.className = 'zoom-control__row';
 
-    if (this._showTitle) {
-      const label = document.createElement('div');
-      label.className = 'control-panel__label';
-      label.textContent = 'Zoom';
-      label.style.marginBottom = '0';
-      labelRow.appendChild(label);
-    }
+    const label = document.createElement('div');
+    label.className = 'zoom-control__axis-label';
+    label.style.cssText = 'font-family:var(--cp-font);font-size:10px;color:var(--cp-text-muted)';
+    label.textContent = 'Zoom';
+    labelRow.appendChild(label);
 
     this._display = document.createElement('span');
     this._display.className = 'zoom-control__value';
@@ -63,34 +59,25 @@ export class ZoomControl {
     this._slider.addEventListener('input', this._boundInput);
     this._el.appendChild(this._slider);
 
-    // reset button
-    this._resetBtn = document.createElement('button');
-    this._resetBtn.className = 'zoom-control__reset';
-    this._resetBtn.textContent = 'reset';
-    this._resetBtn.addEventListener('click', this._boundReset);
-    this._el.appendChild(this._resetBtn);
-
     return this._el;
   }
 
   dispose() {
     if (this._slider) this._slider.removeEventListener('input', this._boundInput);
-    if (this._resetBtn) this._resetBtn.removeEventListener('click', this._boundReset);
     this._el = null;
     this._slider = null;
     this._display = null;
-    this._resetBtn = null;
   }
 
-  _handleInput() {
-    this._value = parseFloat(this._slider.value);
+  reset() {
+    this._value = this._initial;
+    if (this._slider) this._slider.value = String(this._initial);
     this._updateDisplay();
     this._onZoom();
   }
 
-  _handleReset() {
-    this._value = 1.0;
-    this._slider.value = '1';
+  _handleInput() {
+    this._value = parseFloat(this._slider.value);
     this._updateDisplay();
     this._onZoom();
   }

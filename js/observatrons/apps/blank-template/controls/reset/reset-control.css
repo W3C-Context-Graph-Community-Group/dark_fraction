@@ -1,11 +1,11 @@
-.grid-control {
+.reset-control {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 3px;
 }
 
-.grid-control__btn {
+.reset-control__btn {
   background: none;
   border: 1px solid var(--cp-accent-dim);
   color: var(--cp-text-muted);
@@ -18,22 +18,16 @@
   transition: color 0.15s, border-color 0.15s;
 }
 
-.grid-control__btn:hover {
+.reset-control__btn:hover {
   color: var(--cp-accent);
   border-color: var(--cp-accent);
 }
 
-.grid-control__btn--active {
-  color: #4a90d9;
-  border-color: #4a90d9;
-  box-shadow: 0 0 0 1px #4a90d9;
-}
-
-.grid-control__btn:active {
+.reset-control__btn:active {
   opacity: 0.7;
 }
 
-.grid-control__label {
+.reset-control__label {
   font-family: var(--cp-font);
   font-size: 9px;
   letter-spacing: 0.3px;

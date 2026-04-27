@@ -22,6 +22,7 @@ export class ControlPanel {
     section.appendChild(control.mount());
     this._el.appendChild(section);
     this._controls.push({ control, section });
+    return section;
   }
 
   destroy() {

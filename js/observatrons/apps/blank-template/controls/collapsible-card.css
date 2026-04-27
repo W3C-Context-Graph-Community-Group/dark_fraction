@@ -54,6 +54,7 @@
   flex-direction: column;
   gap: 8px;
   overflow: hidden;
+  padding-bottom: 6px;
   /* animate both axes */
   max-height: 600px;
   max-width: 1200px;

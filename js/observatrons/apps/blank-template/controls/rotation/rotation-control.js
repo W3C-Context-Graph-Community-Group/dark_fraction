@@ -52,22 +52,18 @@ export class RotationControl {
     this._sliderZ = sz;
     this._displayZ = dz;
 
-    // reset
-    const resetBtn = document.createElement('button');
-    resetBtn.className = 'rotation-control__reset';
-    resetBtn.textContent = 'reset';
-    resetBtn.addEventListener('click', () => {
-      this._sliderX.value = '0';
-      this._sliderY.value = '0';
-      this._sliderZ.value = '0';
-      this._updateDisplay();
-      this._onRotate('x', 0);
-      this._onRotate('y', 0);
-      this._onRotate('z', 0);
-    });
-    this._el.appendChild(resetBtn);
-
     return this._el;
+  }
+
+  reset() {
+    if (!this._sliderX) return;
+    this._sliderX.value = '0';
+    this._sliderY.value = '0';
+    this._sliderZ.value = '0';
+    this._updateDisplay();
+    this._onRotate('x', 0);
+    this._onRotate('y', 0);
+    this._onRotate('z', 0);
   }
 
   /** Called externally to sync sliders with current rotation (e.g. during drag). */

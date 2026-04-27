@@ -1,7 +1,8 @@
 .save-image-control {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  gap: 3px;
 }
 
 .save-image-control__btn {
@@ -9,13 +10,11 @@
   border: 1px solid var(--cp-accent-dim);
   color: var(--cp-text-muted);
   border-radius: 6px;
-  width: 32px;
-  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  padding: 0;
+  padding: 6px 8px;
   transition: color 0.15s, border-color 0.15s;
 }
 
@@ -26,4 +25,11 @@
 
 .save-image-control__btn:active {
   opacity: 0.7;
+}
+
+.save-image-control__label {
+  font-family: var(--cp-font);
+  font-size: 9px;
+  letter-spacing: 0.3px;
+  color: var(--cp-text-muted);
 }

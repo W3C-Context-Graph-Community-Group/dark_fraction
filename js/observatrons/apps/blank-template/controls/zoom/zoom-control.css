@@ -51,19 +51,3 @@
   border: 2px solid rgba(255, 255, 255, 0.25);
   cursor: grab;
 }
-
-.zoom-control__reset {
-  background: none;
-  border: none;
-  color: var(--cp-text-muted);
-  font-size: 10px;
-  cursor: pointer;
-  padding: 2px 4px;
-  font-family: var(--cp-font);
-  letter-spacing: 0.5px;
-  align-self: flex-end;
-}
-
-.zoom-control__reset:hover {
-  color: var(--cp-accent);
-}

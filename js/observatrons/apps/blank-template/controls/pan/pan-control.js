@@ -19,10 +19,8 @@ export class PanControl {
     this._sliderY = null;
     this._displayX = null;
     this._displayY = null;
-    this._resetBtn = null;
     this._boundInputX = () => this._handleInput('x');
     this._boundInputY = () => this._handleInput('y');
-    this._boundReset = this._handleReset.bind(this);
   }
 
   get valueX() { return this._valueX; }
@@ -50,9 +48,9 @@ export class PanControl {
     rowX.className = 'pan-control__row';
 
     const lblX = document.createElement('div');
-    lblX.className = 'control-panel__label';
+    lblX.className = 'pan-control__axis-label';
+    lblX.style.cssText = 'font-family:var(--cp-font);font-size:10px;color:var(--cp-text-muted)';
     lblX.textContent = 'X-Axis Pan';
-    lblX.style.marginBottom = '0';
     rowX.appendChild(lblX);
 
     this._displayX = document.createElement('span');
@@ -68,9 +66,9 @@ export class PanControl {
     rowY.className = 'pan-control__row';
 
     const lblY = document.createElement('div');
-    lblY.className = 'control-panel__label';
+    lblY.className = 'pan-control__axis-label';
+    lblY.style.cssText = 'font-family:var(--cp-font);font-size:10px;color:var(--cp-text-muted)';
     lblY.textContent = 'Y-Axis Pan';
-    lblY.style.marginBottom = '0';
     rowY.appendChild(lblY);
 
     this._displayY = document.createElement('span');
@@ -81,13 +79,6 @@ export class PanControl {
     this._sliderY = this._makeSlider(this._valueY, this._boundInputY);
     this._el.appendChild(this._sliderY);
 
-    // ── reset ──
-    this._resetBtn = document.createElement('button');
-    this._resetBtn.className = 'pan-control__reset';
-    this._resetBtn.textContent = 'reset';
-    this._resetBtn.addEventListener('click', this._boundReset);
-    this._el.appendChild(this._resetBtn);
-
     this._updateDisplay();
     return this._el;
   }
@@ -95,13 +86,20 @@ export class PanControl {
   dispose() {
     if (this._sliderX) this._sliderX.removeEventListener('input', this._boundInputX);
     if (this._sliderY) this._sliderY.removeEventListener('input', this._boundInputY);
-    if (this._resetBtn) this._resetBtn.removeEventListener('click', this._boundReset);
     this._el = null;
     this._sliderX = null;
     this._sliderY = null;
     this._displayX = null;
     this._displayY = null;
-    this._resetBtn = null;
+  }
+
+  reset() {
+    this._valueX = 0;
+    this._valueY = 0;
+    if (this._sliderX) this._sliderX.value = '0';
+    if (this._sliderY) this._sliderY.value = '0';
+    this._updateDisplay();
+    this._onPan();
   }
 
   /* ── internal ── */
@@ -121,15 +119,6 @@ export class PanControl {
   _handleInput(axis) {
     if (axis === 'x') this._valueX = parseFloat(this._sliderX.value);
     else              this._valueY = parseFloat(this._sliderY.value);
-    this._updateDisplay();
-    this._onPan();
-  }
-
-  _handleReset() {
-    this._valueX = 0;
-    this._valueY = 0;
-    if (this._sliderX) this._sliderX.value = '0';
-    if (this._sliderY) this._sliderY.value = '0';
     this._updateDisplay();
     this._onPan();
   }
