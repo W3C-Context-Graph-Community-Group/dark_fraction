@@ -72,6 +72,10 @@ export class SceneManager {
     };
     addEventListener('resize', this._boundResize);
 
+    // ── tick callbacks ──
+    this._tickCallbacks = [];
+    this._prevTime = performance.now();
+
     // ── animation loop ──
     this._running = true;
     this._loop();
@@ -82,6 +86,11 @@ export class SceneManager {
   set zoomCtrl(ctrl) { this._zoomCtrl = ctrl; }
   set onResize(fn) { this._onResize = fn; }
   set viewExtent({ worldW, worldH }) { this._worldW = worldW; this._worldH = worldH; }
+
+  onTick(fn) {
+    this._tickCallbacks.push(fn);
+    return () => { this._tickCallbacks = this._tickCallbacks.filter(f => f !== fn); };
+  }
 
   fitCamera() {
     const worldW = this._worldW ?? 2.5;
@@ -109,6 +118,10 @@ export class SceneManager {
   _loop() {
     if (!this._running) return;
     requestAnimationFrame(() => this._loop());
+    const now = performance.now();
+    const dt = (now - this._prevTime) / 1000;
+    this._prevTime = now;
+    for (const fn of this._tickCallbacks) fn(dt);
     this.renderer.render(this.scene, this.camera);
   }
 

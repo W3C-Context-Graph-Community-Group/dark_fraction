@@ -16,6 +16,7 @@ import { FiberBundleControl }  from './controls/fiber-bundle/fiber-bundle-contro
 import { StyleControl }        from './controls/style/style-control.js';
 import { Draggable }          from './controls/draggable.js';
 import { FiberBundleManager } from '../../core/helpers/fiber_bundle/FiberBundleManager.js';
+import { LightBallAnimator } from '../../core/helpers/fiber_bundle/helpers/LightBallAnimator.js';
 import { NetworkManager }     from '../../core/helpers/network/NetworkManager.js';
 import { NetworkControl }     from './controls/network/network-control.js';
 
@@ -260,12 +261,20 @@ const fiberMgr = new FiberBundleManager({
   observatronAddress: obs.observatronAddress,
 });
 
+const animator = new LightBallAnimator({
+  pivot: obs._pivot,
+  connections: fiberMgr._connections,
+  resolveEndpoint,
+});
+obs._sceneMgr.onTick(dt => animator.tick(dt));
+
 const fiberCtrl = new FiberBundleControl({
   onToggle: (active) => {
     if (active && fiberCtrl.mode === 'single') {
       fiberCtrl.setSpikeCount(obs.spikeCount);
       fiberMgr.showPairs(0, 0, 1);
     } else if (!active) {
+      animator.stopAll();
       fiberMgr.clearAll();
       fiberCtrl.updateConnectionsList([]);
     }
@@ -281,9 +290,11 @@ const fiberCtrl = new FiberBundleControl({
     fiberCtrl.updateConnectionsList(fiberMgr.connections);
   },
   onRemoveConnection: (id) => {
+    animator.stopOnConnection(id);
     fiberMgr.removeConnection(id);
     fiberCtrl.updateConnectionsList(fiberMgr.connections);
   },
+  onAnimateConnection: (id) => animator.toggle(id),
 });
 
 const fiberCard = new CollapsibleCard({ label: 'Fiber Bundles', id: 'fiber-bundles' });

@@ -8,12 +8,13 @@ export class FiberBundleControl {
    * @param {(id: string) => void} [opts.onRemoveConnection]
    * @param {boolean} [opts.initial=false]
    */
-  constructor({ onToggle, onSlide, onPairsChange, onAddConnection, onRemoveConnection, initial = false }) {
-    this._onToggle           = onToggle;
-    this._onSlide            = onSlide ?? null;
-    this._onPairsChange      = onPairsChange ?? null;
-    this._onAddConnection    = onAddConnection ?? null;
-    this._onRemoveConnection = onRemoveConnection ?? null;
+  constructor({ onToggle, onSlide, onPairsChange, onAddConnection, onRemoveConnection, onAnimateConnection, initial = false }) {
+    this._onToggle              = onToggle;
+    this._onSlide               = onSlide ?? null;
+    this._onPairsChange         = onPairsChange ?? null;
+    this._onAddConnection       = onAddConnection ?? null;
+    this._onRemoveConnection    = onRemoveConnection ?? null;
+    this._onAnimateConnection   = onAnimateConnection ?? null;
     this._active = initial;
     this._spikeCount = 2; // default
     this._pairCount  = 1;
@@ -263,6 +264,14 @@ export class FiberBundleControl {
       text.className = 'fiber-bundle-control__slider-label';
       text.textContent = `${conn.source.nodeId}:${conn.source.spikeIndex} \u2192 ${conn.target.nodeId}:${conn.target.spikeIndex}`;
       entry.appendChild(text);
+
+      const animBtn = document.createElement('button');
+      animBtn.className = 'fiber-bundle-control__toggle';
+      animBtn.textContent = '\u25B6';
+      animBtn.addEventListener('click', () => {
+        if (this._onAnimateConnection) this._onAnimateConnection(conn.id);
+      });
+      entry.appendChild(animBtn);
 
       const removeBtn = document.createElement('button');
       removeBtn.className = 'fiber-bundle-control__toggle';
