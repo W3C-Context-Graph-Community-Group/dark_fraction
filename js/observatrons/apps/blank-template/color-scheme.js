@@ -3,12 +3,13 @@ import * as THREE from 'three';
 const PRESETS = {
   default: {
     sphereColor: 0x3a3a42,       // dark gray metallic
-    channelColor: 0xccaa00,      // yellow hole interior
-    channelRimColor: 0xffdd33,   // bright yellow rim
+    channelColor: 0x555555,      // medium gray hole interior
+    channelRimColor: 0x888888,   // lighter gray rim
     spikeColor(frac) {
       const f = Math.max(0, Math.min(1, frac));
-      // unverified = dull teal, verified = bright cyan-white
-      return new THREE.Color(0.25 + f * 0.75, 0.45 + f * 0.55, 0.5 + f * 0.5);
+      // unverified = dark gray, verified = bright white
+      const g = 0.3 + f * 0.7;
+      return new THREE.Color(g, g, g);
     },
     emptyColor: 0x2a2a30,
   },

@@ -192,6 +192,26 @@ export class SpikeBuilder {
       const capMesh = new THREE.Mesh(capGeo, capMat);
       capMesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), ch.centroid);
       group.add(capMesh);
+
+      // ── channel border ring ──
+      const rimColor = cs ? cs.channelRimColor : 0x888888;
+      const ringSegments = 64;
+      const ringR = capR * 1.002;
+      const sinA = Math.sin(ch.angle);
+      const cosA = Math.cos(ch.angle);
+      const ringPoints = [];
+      for (let j = 0; j < ringSegments; j++) {
+        const phi = (j / ringSegments) * Math.PI * 2;
+        ringPoints.push(new THREE.Vector3(
+          ringR * sinA * Math.cos(phi),
+          ringR * cosA,
+          ringR * sinA * Math.sin(phi)
+        ));
+      }
+      const ringGeo = new THREE.BufferGeometry().setFromPoints(ringPoints);
+      const ringLine = new THREE.LineLoop(ringGeo, new THREE.LineBasicMaterial({ color: rimColor }));
+      ringLine.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), ch.centroid);
+      group.add(ringLine);
     }
 
     // ── spikes: one tetrahedron per column ──
