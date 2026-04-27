@@ -244,6 +244,49 @@ export class FiberBundleManager {
     return wires;
   }
 
+  /**
+   * Rebuild the visuals (rings + wires) for a single connection entry.
+   * Does NOT touch the tracker.
+   */
+  _refreshConnection(id, entry) {
+    for (const ring of entry.rings) { this._pivot.remove(ring.mesh); ring.dispose(); }
+    for (const wr of entry.wires) { this._pivot.remove(wr.mesh); wr.dispose(); }
+
+    const infoA = this._resolveEndpoint(entry.source.nodeId, entry.source.spikeIndex);
+    const infoB = this._resolveEndpoint(entry.target.nodeId, entry.target.spikeIndex);
+    if (!infoA || !infoB) { entry.rings = []; entry.wires = []; return; }
+
+    const ringA = new RingRenderer({
+      position: infoA.apex, normal: infoA.direction,
+      color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.15, shininess: 60,
+    });
+    this._pivot.add(ringA.build());
+
+    const ringB = new RingRenderer({
+      position: infoB.apex, normal: infoB.direction,
+      color: 0x222222, emissive: 0x000000, emissiveIntensity: 0, shininess: 5,
+    });
+    this._pivot.add(ringB.build());
+
+    const wires = this._createBridgeWires(infoA, ringA, infoB, ringB, 1.0, 0.7);
+    entry.rings = [ringA, ringB];
+    entry.wires = wires;
+  }
+
+  /** Rebuild only connections involving a specific node. */
+  refreshConnectionsForNode(nodeId) {
+    for (const [id, entry] of this._connections) {
+      if (entry.source.nodeId === nodeId || entry.target.nodeId === nodeId) {
+        this._refreshConnection(id, entry);
+      }
+    }
+  }
+
+  /** Rebuild all connections. */
+  refreshAll() {
+    for (const [id, entry] of this._connections) this._refreshConnection(id, entry);
+  }
+
   _hideAllWires() {
     for (const [, entry] of this._connections) {
       for (const wr of entry.wires) {

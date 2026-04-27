@@ -24,6 +24,11 @@ export class DragHandler {
     this._spaceDown = false;
     this._lastPointer = { x: 0, y: 0 };
 
+    this._networkMode = false;
+    this._nodeGroups = null;       // THREE.Group[]
+    this._onNodeRotation = null;   // (group) => void
+    this._activeNode = null;       // the group being dragged
+
     const raycaster = new THREE.Raycaster();
     const pointerNDC = new THREE.Vector2();
 
@@ -45,6 +50,22 @@ export class DragHandler {
         this._lastPointer.x = cx;
         this._lastPointer.y = cy;
         this._container.style.cursor = 'grabbing';
+        return;
+      }
+      if (this._networkMode && this._nodeGroups) {
+        setNDC(cx, cy);
+        raycaster.setFromCamera(pointerNDC, this._camera);
+        const hits = raycaster.intersectObjects(this._nodeGroups, true);
+        if (hits.length > 0) {
+          let obj = hits[0].object;
+          while (obj && !this._nodeGroups.includes(obj)) obj = obj.parent;
+          if (obj) {
+            this._activeNode = obj;
+            this._dragActive = true;
+            this._lastPointer.x = cx;
+            this._lastPointer.y = cy;
+          }
+        }
         return;
       }
       if (pick(cx, cy)) {
@@ -69,17 +90,28 @@ export class DragHandler {
       this._lastPointer.x = cx;
       this._lastPointer.y = cy;
       const speed = 0.008;
-      if (shiftKey) {
-        this._pivot.rotation.z += dx * speed;
+      if (this._networkMode && this._activeNode) {
+        if (shiftKey) {
+          this._activeNode.rotation.z += dx * speed;
+        } else {
+          this._activeNode.rotation.y += dx * speed;
+          this._activeNode.rotation.x += dy * speed;
+        }
+        if (this._onNodeRotation) this._onNodeRotation(this._activeNode);
       } else {
-        this._pivot.rotation.y += dx * speed;
-        this._pivot.rotation.x += dy * speed;
+        if (shiftKey) {
+          this._pivot.rotation.z += dx * speed;
+        } else {
+          this._pivot.rotation.y += dx * speed;
+          this._pivot.rotation.x += dy * speed;
+        }
+        this._onRotation();
       }
-      this._onRotation();
     };
 
     const onUp = () => {
       this._dragActive = false;
+      this._activeNode = null;
       if (this._panActive) {
         this._panActive = false;
         this._container.style.cursor = this._spaceDown ? 'grab' : '';
@@ -131,6 +163,20 @@ export class DragHandler {
     container.addEventListener('touchmove', this._boundTouchMove, { passive: false });
     container.addEventListener('touchend', this._boundTouchEnd);
     container.addEventListener('touchcancel', this._boundTouchEnd);
+  }
+
+  setNetworkMode(nodeGroups, onNodeRotation) {
+    this._networkMode = true;
+    this._nodeGroups = nodeGroups;
+    this._onNodeRotation = onNodeRotation;
+    this._activeNode = null;
+  }
+
+  clearNetworkMode() {
+    this._networkMode = false;
+    this._nodeGroups = null;
+    this._onNodeRotation = null;
+    this._activeNode = null;
   }
 
   dispose() {

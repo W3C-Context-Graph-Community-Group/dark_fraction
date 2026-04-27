@@ -19,6 +19,7 @@ import { FiberBundleManager } from '../../core/helpers/fiber_bundle/FiberBundleM
 import { LightBallAnimator } from '../../core/helpers/fiber_bundle/helpers/LightBallAnimator.js';
 import { NetworkManager }     from '../../core/helpers/network/NetworkManager.js';
 import { NetworkControl }     from './controls/network/network-control.js';
+import { EventsControl }     from './controls/events/events-control.js';
 
 const scheme = new ColorScheme('default');
 const obs = new Observatron(document.getElementById('canvas-wrap'));
@@ -171,6 +172,12 @@ toolsCard.addControl('toggle-net', new CardToggleControl({
   initial: false,
   onToggle: (active) => { networkSection.style.display = active ? '' : 'none'; },
 }));
+toolsCard.addControl('toggle-events', new CardToggleControl({
+  label: 'Events',
+  icon: `<svg ${ico16}><circle cx="8" cy="8" r="2" fill="currentColor" stroke="none"/><circle cx="8" cy="8" r="5"/><path d="M13 8h2M1 8h2M8 1v2M8 13v2"/></svg>`,
+  initial: false,
+  onToggle: (active) => { eventsSection.style.display = active ? '' : 'none'; },
+}));
 
 const toolsSection = panel.register(toolsCard);
 new Draggable(toolsSection);
@@ -277,6 +284,7 @@ const fiberCtrl = new FiberBundleControl({
       animator.stopAll();
       fiberMgr.clearAll();
       fiberCtrl.updateConnectionsList([]);
+      syncEventsPanel();
     }
   },
   onSlide: (spikeIndex) => {
@@ -288,11 +296,13 @@ const fiberCtrl = new FiberBundleControl({
   onAddConnection: (source, target) => {
     fiberMgr.addConnection(source, target);
     fiberCtrl.updateConnectionsList(fiberMgr.connections);
+    syncEventsPanel();
   },
   onRemoveConnection: (id) => {
     animator.stopOnConnection(id);
     fiberMgr.removeConnection(id);
     fiberCtrl.updateConnectionsList(fiberMgr.connections);
+    syncEventsPanel();
   },
   onAnimateConnection: (id) => animator.toggle(id),
 });
@@ -302,6 +312,24 @@ fiberCard.addControl('ring', fiberCtrl);
 const fiberSection = panel.register(fiberCard);
 fiberSection.style.display = 'none';
 new Draggable(fiberSection);
+
+/* ── Events card ── */
+const eventsCtrl = new EventsControl({
+  onCompare: (ids) => {
+    // Toggle all listed connections at once
+    for (const id of ids) animator.toggle(id);
+  },
+});
+
+function syncEventsPanel() {
+  eventsCtrl.updateConnectionsList(fiberMgr.connections);
+}
+
+const eventsCard = new CollapsibleCard({ label: 'Events', id: 'events' });
+eventsCard.addControl('events', eventsCtrl);
+const eventsSection = panel.register(eventsCard);
+eventsSection.style.display = 'none';
+new Draggable(eventsSection);
 
 /* ── Style card ── */
 const styleCtrl = new StyleControl({
@@ -352,8 +380,26 @@ const networkCtrl = new NetworkControl({
       obs.viewExtent = networkMgr.computeViewExtent();
       obs.fitCamera();
       networkMgr.updateLabels();
+      // Activate per-node drag rotation
+      animator.stopAll();
+      fiberMgr.clearAll();
+      fiberCtrl.updateConnectionsList([]);
+      syncEventsPanel();
+      obs._drag.setNetworkMode(
+        networkMgr.getNodeGroups(),
+        (rotatedGroup) => {
+          const nodeId = networkMgr.getNodeIndex(rotatedGroup);
+          if (nodeId >= 0 && fiberMgr.pairVisible) {
+            fiberMgr.refreshConnectionsForNode(nodeId);
+            fiberCtrl.updateConnectionsList(fiberMgr.connections);
+            syncEventsPanel();
+          }
+          networkMgr.updateLabels();
+        }
+      );
     } else {
       networkMgr.setCount(0);
+      obs._drag.clearNetworkMode();
       obs._mesh.group.visible = true;
       if (gridActive) {
         obs._bgCube.visible = true;
@@ -368,8 +414,10 @@ const networkCtrl = new NetworkControl({
       return networkMgr.getSpikeCount(nodeId);
     });
     if (count <= 1 && fiberMgr.pairVisible) {
+      animator.stopAll();
       fiberMgr.clearAll();
       fiberCtrl.updateConnectionsList([]);
+      syncEventsPanel();
     }
   },
 });

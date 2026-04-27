@@ -120,11 +120,13 @@ export class NetworkManager {
     const baseEdge      = FacetHeight.baseEdge(n, OBS_RADIUS);
     const baseHeightRef = baseEdge * Math.sqrt(2 / 3);
     const hTetra        = FacetHeight.spikeHeight(baseHeightRef, sp.v, OBS_RADIUS);
+    // Apply per-node rotation
+    const rotDir = dir.clone().applyQuaternion(node.group.quaternion);
     const offset = node.group.position;
     return {
-      direction: dir.clone(),
-      base:      dir.clone().multiplyScalar(OBS_RADIUS * 1.003).add(offset),
-      apex:      dir.clone().multiplyScalar(OBS_RADIUS + hTetra).add(offset),
+      direction: rotDir,
+      base:      rotDir.clone().multiplyScalar(OBS_RADIUS * 1.003).add(offset),
+      apex:      rotDir.clone().multiplyScalar(OBS_RADIUS + hTetra).add(offset),
     };
   }
 
@@ -173,6 +175,17 @@ export class NetworkManager {
     const worldW = cols * CELL_SPACING + 1.0;
     const worldH = rows * CELL_SPACING + 1.0;
     return { worldW, worldH };
+  }
+
+  /** Return array of node THREE.Group objects. */
+  getNodeGroups() { return this._nodes.map(n => n.group); }
+
+  /** Return the index of the node whose group matches the given group, or -1. */
+  getNodeIndex(group) { return this._nodes.findIndex(n => n.group === group); }
+
+  /** Reset all node rotations to identity. */
+  resetNodeRotations() {
+    for (const node of this._nodes) node.group.rotation.set(0, 0, 0);
   }
 
   /** Clean up all nodes. */
