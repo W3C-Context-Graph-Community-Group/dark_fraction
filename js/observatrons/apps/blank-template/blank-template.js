@@ -13,6 +13,7 @@ import { CollapsibleCard }     from './controls/collapsible-card.js';
 import { ResetControl }        from './controls/reset/reset-control.js';
 import { CardToggleControl }   from './controls/card-toggle/card-toggle-control.js';
 import { FiberBundleControl }  from './controls/fiber-bundle/fiber-bundle-control.js';
+import { StyleControl }        from './controls/style/style-control.js';
 import { FiberBundleManager } from '../../core/helpers/fiber_bundle/FiberBundleManager.js';
 
 const scheme = new ColorScheme('default');
@@ -153,6 +154,12 @@ toolsCard.addControl('toggle-fiber', new CardToggleControl({
   initial: false,
   onToggle: (active) => { fiberSection.style.display = active ? '' : 'none'; },
 }));
+toolsCard.addControl('toggle-style', new CardToggleControl({
+  label: 'Style',
+  icon: `<svg ${ico16}><circle cx="8" cy="8" r="6"/><line x1="8" y1="2" x2="8" y2="14"/><line x1="2" y1="8" x2="14" y2="8"/></svg>`,
+  initial: false,
+  onToggle: (active) => { styleSection.style.display = active ? '' : 'none'; },
+}));
 
 panel.register(toolsCard);
 
@@ -248,6 +255,26 @@ const fiberCard = new CollapsibleCard({ label: 'Fiber Bundles', id: 'fiber-bundl
 fiberCard.addControl('ring', fiberCtrl);
 const fiberSection = panel.register(fiberCard);
 fiberSection.style.display = 'none';
+
+/* ── Style card ── */
+const styleCtrl = new StyleControl({
+  label: 'Facet opacity',
+  initial: 90,
+  onChange: (opacity) => { obs.facetOpacity = opacity; },
+});
+
+const dotRadiusCtrl = new StyleControl({
+  label: 'Channel timestamp radius',
+  suffix: '%',
+  initial: 0,
+  onChange: (frac) => { obs.dotScale = 1.0 + frac * 1.5; },
+});
+
+const styleCard = new CollapsibleCard({ label: 'Style', id: 'style' });
+styleCard.addControl('facet-opacity', styleCtrl);
+styleCard.addControl('dot-radius', dotRadiusCtrl);
+const styleSection = panel.register(styleCard);
+styleSection.style.display = 'none';
 
 /* ── Corner-dot click → animate rotation reset ── */
 let resetAnim = null;

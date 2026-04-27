@@ -133,6 +133,24 @@ export class Observatron {
     this._rebuild();
   }
 
+  set facetOpacity(v) {
+    if (!this._mesh) return;
+    this._mesh.group.traverse(o => {
+      if (o.isMesh && o.userData.facetSide) {
+        o.material.opacity = v;
+      }
+    });
+  }
+
+  set dotScale(s) {
+    if (!this._mesh) return;
+    this._mesh.group.traverse(o => {
+      if (o.isMesh && o.userData.dotDisc) {
+        o.scale.set(s, s, s);
+      }
+    });
+  }
+
   dispose() {
     this._drag.dispose();
     this._labels.dispose();

@@ -223,6 +223,9 @@ export class SpikeBuilder {
     const u = new THREE.Vector3();
     const v3 = new THREE.Vector3();
 
+    const dotDiscGeo = new THREE.CircleGeometry(rBase * 0.35, 24);
+    const dotDiscMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+
     for (let i = 0; i < n; i++) {
       const normal = dirs[i];
       const sp = spikes[i];
@@ -251,6 +254,14 @@ export class SpikeBuilder {
         );
       }
 
+      // black dot disc on sphere surface below spike
+      const dotMesh = new THREE.Mesh(dotDiscGeo, dotDiscMat);
+      const dotPt = normal.clone().multiplyScalar(OBS_RADIUS * 1.002);
+      dotMesh.position.copy(dotPt);
+      dotMesh.lookAt(dotPt.clone().multiplyScalar(2));
+      dotMesh.userData.dotDisc = true;
+      group.add(dotMesh);
+
       // tetrahedron base (channel hole color)
       const baseGeom = new THREE.BufferGeometry();
       baseGeom.setAttribute('position', new THREE.BufferAttribute(new Float32Array([
@@ -271,9 +282,13 @@ export class SpikeBuilder {
         bv[2].x, bv[2].y, bv[2].z,  bv[0].x, bv[0].y, bv[0].z,  apex.x, apex.y, apex.z,
       ]), 3));
       sideGeom.computeVertexNormals();
-      group.add(new THREE.Mesh(sideGeom, new THREE.MeshPhongMaterial({
-        color: spikeCol, shininess: 60, flatShading: true
-      })));
+      const sideMesh = new THREE.Mesh(sideGeom, new THREE.MeshPhongMaterial({
+        color: spikeCol, shininess: 60, flatShading: true,
+        transparent: true, opacity: 0.9,
+      }));
+      sideMesh.userData.facetSide = true;
+      group.add(sideMesh);
     }
+
   }
 }
