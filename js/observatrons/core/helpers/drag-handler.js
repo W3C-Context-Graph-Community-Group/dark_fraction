@@ -54,7 +54,7 @@ export class DragHandler {
       }
     };
 
-    const onMove = (cx, cy) => {
+    const onMove = (cx, cy, shiftKey = false) => {
       if (this._panActive) {
         const dx = cx - this._lastPointer.x;
         const dy = cy - this._lastPointer.y;
@@ -69,8 +69,12 @@ export class DragHandler {
       this._lastPointer.x = cx;
       this._lastPointer.y = cy;
       const speed = 0.008;
-      this._pivot.rotation.y += dx * speed;
-      this._pivot.rotation.x += dy * speed;
+      if (shiftKey) {
+        this._pivot.rotation.z += dx * speed;
+      } else {
+        this._pivot.rotation.y += dx * speed;
+        this._pivot.rotation.x += dy * speed;
+      }
       this._onRotation();
     };
 
@@ -106,7 +110,7 @@ export class DragHandler {
 
     // mouse
     this._boundMouseDown = (e) => { if (e.button === 0) onDown(e.clientX, e.clientY); };
-    this._boundMouseMove = (e) => onMove(e.clientX, e.clientY);
+    this._boundMouseMove = (e) => onMove(e.clientX, e.clientY, e.shiftKey);
     this._boundMouseUp   = onUp;
     container.addEventListener('mousedown', this._boundMouseDown);
     addEventListener('mousemove', this._boundMouseMove);

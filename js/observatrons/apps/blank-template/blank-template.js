@@ -247,22 +247,42 @@ colorSection.style.display = 'none';
 new Draggable(colorSection);
 
 /* ── Fiber bundles ── */
+function resolveEndpoint(nodeId, spikeIndex) {
+  if (networkMgr.count <= 0) {
+    return obs.getSpikeInfo(spikeIndex);
+  }
+  return networkMgr.getSpikeInfo(nodeId, spikeIndex);
+}
+
 const fiberMgr = new FiberBundleManager({
   pivot: obs._pivot,
-  getSpikeInfo: (i) => obs.getSpikeInfo(i),
+  resolveEndpoint,
   observatronAddress: obs.observatronAddress,
 });
 
 const fiberCtrl = new FiberBundleControl({
   onToggle: (active) => {
-    if (active) { fiberCtrl.setSpikeCount(obs.spikeCount); fiberMgr.showPairs(0, 1); }
-    else        { fiberMgr.hidePairs(); }
+    if (active && fiberCtrl.mode === 'single') {
+      fiberCtrl.setSpikeCount(obs.spikeCount);
+      fiberMgr.showPairs(0, 0, 1);
+    } else if (!active) {
+      fiberMgr.clearAll();
+      fiberCtrl.updateConnectionsList([]);
+    }
   },
   onSlide: (spikeIndex) => {
-    if (fiberMgr.pairVisible) fiberMgr.showPairs(spikeIndex, fiberCtrl.pairCount);
+    if (fiberMgr.pairVisible) fiberMgr.showPairs(0, spikeIndex, fiberCtrl.pairCount);
   },
   onPairsChange: (count) => {
-    if (fiberMgr.pairVisible) fiberMgr.showPairs(fiberCtrl.spikeIndex, count);
+    if (fiberMgr.pairVisible) fiberMgr.showPairs(0, fiberCtrl.spikeIndex, count);
+  },
+  onAddConnection: (source, target) => {
+    fiberMgr.addConnection(source, target);
+    fiberCtrl.updateConnectionsList(fiberMgr.connections);
+  },
+  onRemoveConnection: (id) => {
+    fiberMgr.removeConnection(id);
+    fiberCtrl.updateConnectionsList(fiberMgr.connections);
   },
 });
 
@@ -330,6 +350,15 @@ const networkCtrl = new NetworkControl({
       }
       obs.viewExtent = { worldW: 2.5, worldH: 2.2 };
       obs.fitCamera();
+    }
+    // Update fiber bundle mode
+    fiberCtrl.setMode(count, (nodeId) => {
+      if (count <= 1) return obs.spikeCount;
+      return networkMgr.getSpikeCount(nodeId);
+    });
+    if (count <= 1 && fiberMgr.pairVisible) {
+      fiberMgr.clearAll();
+      fiberCtrl.updateConnectionsList([]);
     }
   },
 });

@@ -1,3 +1,6 @@
+// FiberEndpoint = { nodeId: number, spikeIndex: number }
+// Connection    = { id: string, source: FiberEndpoint, target: FiberEndpoint, wireTypes: string[] }
+
 export class ConnectionTracker {
   constructor(observatronAddress) {
     this._address = observatronAddress;
@@ -13,25 +16,36 @@ export class ConnectionTracker {
     };
   }
 
-  connect(spikeA, spikeB, wireTypes) {
-    this.disconnect(spikeA, spikeB);
-    this._connections.push({ spikeA, spikeB, wireTypes: [...wireTypes] });
+  /**
+   * @param {{ nodeId: number, spikeIndex: number }} source
+   * @param {{ nodeId: number, spikeIndex: number }} target
+   * @param {string[]} wireTypes
+   * @returns {string} connection id
+   */
+  connect(source, target, wireTypes) {
+    const id = `${source.nodeId}:${source.spikeIndex}->${target.nodeId}:${target.spikeIndex}`;
+    this.disconnect(id);
+    this._connections.push({
+      id,
+      source: { ...source },
+      target: { ...target },
+      wireTypes: [...wireTypes],
+    });
+    return id;
   }
 
-  disconnect(spikeA, spikeB) {
-    this._connections = this._connections.filter(
-      c => !(c.spikeA === spikeA && c.spikeB === spikeB),
-    );
+  /** Remove a connection by its id string. */
+  disconnect(id) {
+    this._connections = this._connections.filter(c => c.id !== id);
+  }
+
+  /** Find a connection by its id string. */
+  getConnection(id) {
+    return this._connections.find(c => c.id === id) ?? null;
   }
 
   clear() {
     this._connections = [];
-  }
-
-  getConnection(spikeA, spikeB) {
-    return this._connections.find(
-      c => c.spikeA === spikeA && c.spikeB === spikeB,
-    ) ?? null;
   }
 
   toJSON() {

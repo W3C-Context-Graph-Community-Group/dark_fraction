@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { ObservatronChannelManager } from '../../channel-manager.js';
 import { SpikeBuilder } from '../spike-builder.js';
+import { FacetHeight } from '../../facet-height.js';
 import { disposeGroup, OBS_RADIUS } from '../math-utils.js';
 
 const CELL_SPACING = OBS_RADIUS * 3.0 + 0.3; // 1.8 units
@@ -23,7 +24,7 @@ export class NetworkManager {
     this._colorScheme = colorScheme;
     this._baseSeed = baseSeed;
 
-    /** @type {{ group: THREE.Group, box: THREE.LineSegments, label: HTMLDivElement }[]} */
+    /** @type {{ group: THREE.Group, box: THREE.LineSegments, label: HTMLDivElement, dirs: THREE.Vector3[], spikes: object[], regionStats: object }[]} */
     this._nodes = [];
     this._gridActive = false;
     this._count = 0;
@@ -66,9 +67,11 @@ export class NetworkManager {
       const { spikes, regionStats } = SpikeBuilder.deriveSpikes(chMgr);
       const meshGroup = new THREE.Group();
 
+      let nodeDirs = [];
       if (spikes.length > 0) {
         const { channels, dirs, channelSpikeIndices } = SpikeBuilder.computeLayout(spikes, regionStats);
         SpikeBuilder.buildGeometry(meshGroup, spikes, regionStats, dirs, channels, this._colorScheme);
+        nodeDirs = dirs;
       } else {
         SpikeBuilder.buildGeometry(meshGroup, spikes, regionStats, [], [], this._colorScheme);
       }
@@ -97,8 +100,40 @@ export class NetworkManager {
       label.textContent = String(i);
       if (overlay) overlay.appendChild(label);
 
-      this._nodes.push({ group: nodeGroup, box, label });
+      this._nodes.push({ group: nodeGroup, box, label, dirs: nodeDirs, spikes, regionStats });
     }
+  }
+
+  /** Number of active nodes. */
+  get count() { return this._count; }
+
+  /**
+   * Resolve spike geometry for a given node and spike index.
+   * Returns { direction, base, apex } in world-offset coords, or null.
+   */
+  getSpikeInfo(nodeId, spikeIndex) {
+    const node = this._nodes[nodeId];
+    if (!node || !node.dirs || spikeIndex < 0 || spikeIndex >= node.dirs.length) return null;
+    const dir = node.dirs[spikeIndex];
+    const sp  = node.spikes[spikeIndex];
+    const n   = node.spikes.length;
+    const baseEdge      = FacetHeight.baseEdge(n, OBS_RADIUS);
+    const baseHeightRef = baseEdge * Math.sqrt(2 / 3);
+    const hTetra        = FacetHeight.spikeHeight(baseHeightRef, sp.v, OBS_RADIUS);
+    const offset = node.group.position;
+    return {
+      direction: dir.clone(),
+      base:      dir.clone().multiplyScalar(OBS_RADIUS * 1.003).add(offset),
+      apex:      dir.clone().multiplyScalar(OBS_RADIUS + hTetra).add(offset),
+    };
+  }
+
+  /**
+   * Return the number of spikes on a given node.
+   */
+  getSpikeCount(nodeId) {
+    const node = this._nodes[nodeId];
+    return node ? node.spikes.length : 0;
   }
 
   /** Toggle bounding-box visibility (only shown when count > 1). */

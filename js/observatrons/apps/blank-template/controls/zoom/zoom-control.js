@@ -2,12 +2,12 @@ export class ZoomControl {
   /**
    * @param {object} opts
    * @param {() => void} opts.onZoom  - callback after zoom changes
-   * @param {number} [opts.min=0.25]  - min zoom multiplier (zoom in)
+   * @param {number} [opts.min=0.125] - min zoom multiplier (zoom in)
    * @param {number} [opts.max=3.0]   - max zoom multiplier (zoom out)
    * @param {number} [opts.initial=1.0]
    * @param {number} [opts.step=0.05]
    */
-  constructor({ onZoom, min = 0.25, max = 3.0, initial = 1.0, step = 0.05 }) {
+  constructor({ onZoom, min = 0.125, max = 3.0, initial = 1.0, step = 0.05 }) {
     this._onZoom = onZoom;
     this._min = min;
     this._max = max;
