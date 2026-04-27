@@ -14,7 +14,10 @@ import { ResetControl }        from './controls/reset/reset-control.js';
 import { CardToggleControl }   from './controls/card-toggle/card-toggle-control.js';
 import { FiberBundleControl }  from './controls/fiber-bundle/fiber-bundle-control.js';
 import { StyleControl }        from './controls/style/style-control.js';
+import { Draggable }          from './controls/draggable.js';
 import { FiberBundleManager } from '../../core/helpers/fiber_bundle/FiberBundleManager.js';
+import { NetworkManager }     from '../../core/helpers/network/NetworkManager.js';
+import { NetworkControl }     from './controls/network/network-control.js';
 
 const scheme = new ColorScheme('default');
 const obs = new Observatron(document.getElementById('canvas-wrap'));
@@ -100,6 +103,7 @@ toolsCard.addControl('grid', new GridControl({
     gridActive = active;
     obs._bgCube.visible = active;
     obs._bgCorner.visible = active;
+    networkMgr.gridActive = active;
     if (active) {
       const layers = buildGridLayers();
       gridBack = layers.back;
@@ -118,7 +122,7 @@ toolsCard.addControl('grid', new GridControl({
 }));
 
 toolsCard.addControl('reset', new ResetControl({
-  onReset: () => { zoomCtrl.reset(); panCtrl.reset(); rotCtrl.reset(); },
+  onReset: () => { zoomCtrl.reset(); panCtrl.reset(); rotCtrl.reset(); networkCtrl.reset(); },
 }));
 
 /* ── Card toggle buttons (all start hidden) ── */
@@ -160,39 +164,48 @@ toolsCard.addControl('toggle-style', new CardToggleControl({
   initial: false,
   onToggle: (active) => { styleSection.style.display = active ? '' : 'none'; },
 }));
+toolsCard.addControl('toggle-net', new CardToggleControl({
+  label: 'Net',
+  icon: `<svg ${ico16}><circle cx="4" cy="4" r="1.5"/><circle cx="12" cy="4" r="1.5"/><circle cx="4" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><line x1="5.5" y1="4" x2="10.5" y2="4"/><line x1="4" y1="5.5" x2="4" y2="10.5"/><line x1="12" y1="5.5" x2="12" y2="10.5"/><line x1="5.5" y1="12" x2="10.5" y2="12"/><line x1="5.5" y1="5.5" x2="10.5" y2="10.5"/><line x1="10.5" y1="5.5" x2="5.5" y2="10.5"/></svg>`,
+  initial: false,
+  onToggle: (active) => { networkSection.style.display = active ? '' : 'none'; },
+}));
 
-panel.register(toolsCard);
+const toolsSection = panel.register(toolsCard);
+new Draggable(toolsSection);
 
 /* ── Zoom + Pan card ── */
 const zoomCtrl = new ZoomControl({
-  onZoom: () => { obs.fitCamera(); obs._updateLabels(); },
+  onZoom: () => { obs.fitCamera(); obs._updateLabels(); networkMgr.updateLabels(); },
   initial: 1.65,
 });
 obs.zoomCtrl = zoomCtrl;
 obs.fitCamera();
 
 const panCtrl = new PanControl({
-  onPan: () => { obs.setPan(panCtrl.valueX, panCtrl.valueY); obs._updateLabels(); },
+  onPan: () => { obs.setPan(panCtrl.valueX, panCtrl.valueY); obs._updateLabels(); networkMgr.updateLabels(); },
 });
-obs.onPanChange = (x, y) => panCtrl.update(x, y);
+obs.onPanChange = (x, y) => { panCtrl.update(x, y); networkMgr.updateLabels(); };
 
 const zoomCard = new CollapsibleCard({ label: 'View', id: 'view' });
 zoomCard.addControl('zoom', zoomCtrl);
 zoomCard.addControl('pan', panCtrl);
 const viewSection = panel.register(zoomCard);
 viewSection.style.display = 'none';
+new Draggable(viewSection);
 
 /* ── Rotation card ── */
 const rotCtrl = new RotationControl({
   onRotate: (axis, radians) => obs.setRotation(axis, radians),
   showTitle: false,
 });
-obs.onRotationChange = (x, y, z) => rotCtrl.update(x, y, z);
+obs.onRotationChange = (x, y, z) => { rotCtrl.update(x, y, z); networkMgr.updateLabels(); };
 
 const rotCard = new CollapsibleCard({ label: 'Rotation', id: 'rotation' });
 rotCard.addControl('axes', rotCtrl);
 const rotSection = panel.register(rotCard);
 rotSection.style.display = 'none';
+new Draggable(rotSection);
 
 /* ── Filters card ── */
 const filtersCard = new CollapsibleCard({ label: 'Filters', id: 'filters', layout: 'row' });
@@ -223,6 +236,7 @@ filtersCard.addControl('visible-ch', new RangeControl({
 }));
 const filtersSection = panel.register(filtersCard);
 filtersSection.style.display = 'none';
+new Draggable(filtersSection);
 
 const colorSection = panel.register(new ColorSchemeControl({
   schemes: ColorScheme.presets,
@@ -230,6 +244,7 @@ const colorSection = panel.register(new ColorSchemeControl({
   onScheme: (name) => scheme.set(name),
 }));
 colorSection.style.display = 'none';
+new Draggable(colorSection);
 
 /* ── Fiber bundles ── */
 const fiberMgr = new FiberBundleManager({
@@ -255,6 +270,7 @@ const fiberCard = new CollapsibleCard({ label: 'Fiber Bundles', id: 'fiber-bundl
 fiberCard.addControl('ring', fiberCtrl);
 const fiberSection = panel.register(fiberCard);
 fiberSection.style.display = 'none';
+new Draggable(fiberSection);
 
 /* ── Style card ── */
 const styleCtrl = new StyleControl({
@@ -275,6 +291,56 @@ styleCard.addControl('facet-opacity', styleCtrl);
 styleCard.addControl('dot-radius', dotRadiusCtrl);
 const styleSection = panel.register(styleCard);
 styleSection.style.display = 'none';
+new Draggable(styleSection);
+
+/* ── Network ── */
+const networkMgr = new NetworkManager({
+  pivot: obs._pivot,
+  camera: obs._camera,
+  colorScheme: scheme,
+  baseSeed: 0xC6A107,
+});
+
+function currentRanges() {
+  return {
+    channelsRange: obs._channelsRange,
+    eventsRange:   obs._eventsRange,
+    anchorsRange:  obs._anchorsRange,
+    pathsRange:    obs._pathsRange,
+  };
+}
+
+const networkCtrl = new NetworkControl({
+  onChange: (count) => {
+    if (count > 1) {
+      obs._mesh.group.visible = false;
+      obs._bgCube.visible = false;
+      obs._bgCorner.visible = false;
+      networkMgr.setCount(count, currentRanges());
+      networkMgr.gridActive = gridActive;
+      obs.viewExtent = networkMgr.computeViewExtent();
+      obs.fitCamera();
+      networkMgr.updateLabels();
+    } else {
+      networkMgr.setCount(0);
+      obs._mesh.group.visible = true;
+      if (gridActive) {
+        obs._bgCube.visible = true;
+        obs._bgCorner.visible = true;
+      }
+      obs.viewExtent = { worldW: 2.5, worldH: 2.2 };
+      obs.fitCamera();
+    }
+  },
+});
+
+const networkCard = new CollapsibleCard({ label: 'Network', id: 'network' });
+networkCard.addControl('observatrons', networkCtrl);
+const networkSection = panel.register(networkCard);
+networkSection.style.display = 'none';
+new Draggable(networkSection);
+
+addEventListener('resize', () => networkMgr.updateLabels());
 
 /* ── Corner-dot click → animate rotation reset ── */
 let resetAnim = null;

@@ -172,6 +172,8 @@ export class Observatron {
   get _bgCorner() { return this._sceneMgr.bgCorner; }
   get _pivot()    { return this._sceneMgr.pivot; }
   get _scene()    { return this._sceneMgr.scene; }
+  get _camera()   { return this._sceneMgr.camera; }
+  set viewExtent(ext) { this._sceneMgr.viewExtent = ext; }
 
   _projectToScreen(v3) {
     return this._labels.projectToScreen(v3);

@@ -56,6 +56,10 @@ export class SceneManager {
     this.bgCorner.visible = false;
     this.pivot.add(this.bgCorner);
 
+    // ── view extent overrides ──
+    this._worldW = null;
+    this._worldH = null;
+
     // ── zoom reference ──
     this._zoomCtrl = null;
 
@@ -77,10 +81,11 @@ export class SceneManager {
 
   set zoomCtrl(ctrl) { this._zoomCtrl = ctrl; }
   set onResize(fn) { this._onResize = fn; }
+  set viewExtent({ worldW, worldH }) { this._worldW = worldW; this._worldH = worldH; }
 
   fitCamera() {
-    const worldW = 2.5;
-    const worldH = 2.2;
+    const worldW = this._worldW ?? 2.5;
+    const worldH = this._worldH ?? 2.2;
     const aspect = innerWidth / innerHeight;
     let viewW, viewH;
     if (aspect > worldW / worldH) {
