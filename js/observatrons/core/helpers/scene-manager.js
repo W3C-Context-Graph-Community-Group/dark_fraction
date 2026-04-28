@@ -76,6 +76,10 @@ export class SceneManager {
     this._tickCallbacks = [];
     this._prevTime = performance.now();
 
+    // ── background scene (grid, etc.) ──
+    this._bgScene = null;
+    this._bgCamera = null;
+
     // ── animation loop ──
     this._running = true;
     this._loop();
@@ -86,6 +90,10 @@ export class SceneManager {
   set zoomCtrl(ctrl) { this._zoomCtrl = ctrl; }
   set onResize(fn) { this._onResize = fn; }
   set viewExtent({ worldW, worldH }) { this._worldW = worldW; this._worldH = worldH; }
+
+  /** Set a background scene rendered before the main scene with its own camera. */
+  setBgScene(scene, camera) { this._bgScene = scene; this._bgCamera = camera; }
+  clearBgScene() { this._bgScene = null; this._bgCamera = null; }
 
   onTick(fn) {
     this._tickCallbacks.push(fn);
@@ -122,7 +130,15 @@ export class SceneManager {
     const dt = (now - this._prevTime) / 1000;
     this._prevTime = now;
     for (const fn of this._tickCallbacks) fn(dt);
-    this.renderer.render(this.scene, this.camera);
+    if (this._bgScene && this._bgCamera) {
+      this.renderer.autoClear = true;
+      this.renderer.render(this._bgScene, this._bgCamera);
+      this.renderer.autoClear = false;
+      this.renderer.render(this.scene, this.camera);
+      this.renderer.autoClear = true;
+    } else {
+      this.renderer.render(this.scene, this.camera);
+    }
   }
 
   dispose() {

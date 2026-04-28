@@ -20,6 +20,7 @@ import { LightBallAnimator } from '../../core/helpers/fiber_bundle/helpers/Light
 import { NetworkManager }     from '../../core/helpers/network/NetworkManager.js';
 import { NetworkControl }     from './controls/network/network-control.js';
 import { EventsControl }     from './controls/events/events-control.js';
+import { ClaimsControl }     from './controls/claims/claims-control.js';
 import { CompareClaims }     from '../../core/helpers/verification/CompareClaims.js';
 import { DecisionGate }      from '../../core/helpers/verification/DecisionGate.js';
 
@@ -36,39 +37,45 @@ toolsCard.addControl('download', new SaveImageControl({
   onSave: () => obs.saveImage('observatron.png'),
 }));
 
-/* ── Grid dots ── */
-let gridDots = null;
+/* ── Grid dots (own scene + fixed camera, decoupled from main view) ── */
 let gridActive = false;
 
-function buildGrid() {
-  const spacing = 0.1;
-  const extent = 8;
+const gridScene = new THREE.Scene();
+gridScene.background = new THREE.Color(0x0a0a12);
+
+const gridCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
+gridCamera.position.set(0, 0, 5);
+
+const GRID_SPACING = 0.1;
+const GRID_DOT_PX  = 24;   // target pixel spacing between dots
+const GRID_EXTENT  = 8;
+
+(function buildGrid() {
   const verts = [];
-  for (let x = -extent; x <= extent; x += spacing) {
-    for (let y = -extent; y <= extent; y += spacing) {
-      verts.push(x, y, -1);
+  for (let x = -GRID_EXTENT; x <= GRID_EXTENT; x += GRID_SPACING) {
+    for (let y = -GRID_EXTENT; y <= GRID_EXTENT; y += GRID_SPACING) {
+      verts.push(x, y, 0);
     }
   }
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
-  const mat = new THREE.PointsMaterial({
-    color: 0x4a90d9,
-    size: 3,
-    sizeAttenuation: false,
-    transparent: true,
-    opacity: 0.35,
-    depthWrite: false,
-  });
-  return new THREE.Points(geo, mat);
-}
+  gridScene.add(new THREE.Points(geo, new THREE.PointsMaterial({
+    color: 0x4a90d9, size: 3, sizeAttenuation: false,
+    transparent: true, opacity: 0.35, depthWrite: false,
+  })));
+})();
 
-function disposeGrid() {
-  if (!gridDots) return;
-  obs._scene.remove(gridDots);
-  gridDots.geometry.dispose();
-  gridDots.material.dispose();
-  gridDots = null;
+function fitGridCamera() {
+  const h = (innerHeight * GRID_SPACING) / GRID_DOT_PX;
+  const w = (innerWidth  * GRID_SPACING) / GRID_DOT_PX;
+  gridCamera.left   = -w / 2;
+  gridCamera.right  =  w / 2;
+  gridCamera.top    =  h / 2;
+  gridCamera.bottom = -h / 2;
+  gridCamera.updateProjectionMatrix();
 }
+fitGridCamera();
+addEventListener('resize', fitGridCamera);
 
 toolsCard.addControl('grid', new GridControl({
   onToggle: (active) => {
@@ -77,10 +84,9 @@ toolsCard.addControl('grid', new GridControl({
     obs._bgCorner.visible = active;
     networkMgr.gridActive = active;
     if (active) {
-      gridDots = buildGrid();
-      obs._scene.add(gridDots);
+      obs._sceneMgr.setBgScene(gridScene, gridCamera);
     } else {
-      disposeGrid();
+      obs._sceneMgr.clearBgScene();
     }
   },
 }));
@@ -148,6 +154,13 @@ const toggleEvents = new CardToggleControl({
   onToggle: (active) => { eventsSection.style.display = active ? '' : 'none'; },
 });
 toolsCard.addControl('toggle-events', toggleEvents);
+const toggleClaims = new CardToggleControl({
+  label: 'Claims',
+  icon: `<svg ${ico16}><rect x="3" y="2" width="10" height="12" rx="1"/><line x1="5.5" y1="5" x2="10.5" y2="5"/><line x1="5.5" y1="8" x2="10.5" y2="8"/><line x1="5.5" y1="11" x2="8.5" y2="11"/></svg>`,
+  initial: false,
+  onToggle: (active) => { claimsSection.style.display = active ? '' : 'none'; },
+});
+toolsCard.addControl('toggle-claims', toggleClaims);
 
 const toolsSection = panel.register(toolsCard);
 new Draggable(toolsSection);
@@ -304,6 +317,14 @@ eventsCard.addControl('events', eventsCtrl);
 const eventsSection = panel.register(eventsCard);
 eventsSection.style.display = 'none';
 new Draggable(eventsSection);
+
+/* ── Claims card ── */
+const claimsCtrl = new ClaimsControl();
+const claimsCard = new CollapsibleCard({ label: 'Claims', id: 'claims', onClose: () => toggleClaims.setActive(false) });
+claimsCard.addControl('claims', claimsCtrl);
+const claimsSection = panel.register(claimsCard);
+claimsSection.style.display = 'none';
+new Draggable(claimsSection);
 
 /* ── Style card ── */
 const styleCtrl = new StyleControl({
