@@ -8,18 +8,21 @@ export class LayersPanel {
   /**
    * @param {object} opts
    * @param {function} [opts.onResize] — called with current width after drag
+   * @param {function} [opts.onItemClick] — called with entry id when item clicked
    * @param {number}   [opts.initialWidth=350]
    * @param {number}   [opts.minWidth=200]
    * @param {number}   [opts.maxWidth=600]
    */
-  constructor({ onResize, initialWidth = 350, minWidth = 200, maxWidth = 600 } = {}) {
+  constructor({ onResize, onItemClick, initialWidth = 350, minWidth = 200, maxWidth = 600 } = {}) {
     this._onResize = onResize || null;
+    this._onItemClick = onItemClick || null;
     this._width = initialWidth;
     this._minWidth = minWidth;
     this._maxWidth = maxWidth;
     this._el = null;
     this._listEl = null;
     this._resizer = null;
+    this._selectedId = null;
   }
 
   mount() {
@@ -55,14 +58,40 @@ export class LayersPanel {
   setEntries(entries) {
     if (!this._listEl) return;
     this._listEl.innerHTML = '';
+    this._selectedId = null;
     for (const entry of entries) {
       const item = document.createElement('div');
       item.className = 'layers-panel__item';
       item.setAttribute('data-cgp-observatron_id', entry.id);
       item.textContent = entry.url;
+      item.addEventListener('click', () => {
+        if (this._onItemClick) this._onItemClick(entry.id);
+      });
       this._listEl.appendChild(item);
     }
   }
+
+  /**
+   * Visually select an item by id (or deselect if null).
+   * @param {string|null} id
+   */
+  selectItem(id) {
+    // remove previous selection
+    if (this._selectedId !== null && this._listEl) {
+      const prev = this._listEl.querySelector(`[data-cgp-observatron_id="${this._selectedId}"]`);
+      if (prev) prev.classList.remove('layers-panel__item--selected');
+    }
+    this._selectedId = id;
+    if (id !== null && this._listEl) {
+      const el = this._listEl.querySelector(`[data-cgp-observatron_id="${id}"]`);
+      if (el) {
+        el.classList.add('layers-panel__item--selected');
+        el.scrollIntoView({ block: 'nearest' });
+      }
+    }
+  }
+
+  get selectedId() { return this._selectedId; }
 
   dispose() {
     if (this._el) this._el.remove();

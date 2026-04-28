@@ -31,11 +31,23 @@ obs.colorScheme = scheme;
 obs.exec('seed', { seed: 0xC6A107 });
 
 /* ── Layers panel (left sidebar) ── */
+let selectedObsIndex = -1;
+
+function selectObservatron(index) {
+  selectedObsIndex = index;
+  networkMgr.highlightNode(index);
+  layersPanel.selectItem(index >= 0 ? String(index) : null);
+}
+
 const layersPanel = new LayersPanel({
   onResize: () => {
     obs._sceneMgr.triggerResize();
     fitGridCamera();
     networkMgr.updateLabels();
+  },
+  onItemClick: (id) => {
+    const idx = parseInt(id, 10);
+    selectObservatron(idx === selectedObsIndex ? -1 : idx);
   },
 });
 // Load CSS and mount
@@ -395,6 +407,20 @@ const networkMgr = new NetworkManager({
 });
 networkMgr.canvasContainer = document.getElementById('canvas-wrap');
 
+obs._drag.onNodeClick = (groupOrNull) => {
+  if (groupOrNull === null) {
+    // clicked empty space → deselect
+    selectObservatron(-1);
+  } else if (groupOrNull === 'single') {
+    // single observatron mode click
+    selectObservatron(selectedObsIndex === 0 ? -1 : 0);
+  } else {
+    // network mode: group is a THREE.Group
+    const idx = networkMgr.getNodeIndex(groupOrNull);
+    selectObservatron(idx === selectedObsIndex ? -1 : idx);
+  }
+};
+
 function currentRanges() {
   return {
     channelsRange: obs._channelsRange,
@@ -406,6 +432,7 @@ function currentRanges() {
 
 const networkCtrl = new NetworkControl({
   onChange: (count) => {
+    selectObservatron(-1);
     if (count > 1) {
       obs._mesh.group.visible = false;
       obs._bgCube.visible = false;

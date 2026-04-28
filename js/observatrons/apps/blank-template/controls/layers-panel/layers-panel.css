@@ -47,6 +47,15 @@
   background: rgba(255, 255, 255, 0.05);
 }
 
+.layers-panel__item--selected {
+  background: var(--cp-accent-dim);
+  color: var(--cp-accent);
+}
+
+.layers-panel__item--selected:hover {
+  background: var(--cp-accent-dim);
+}
+
 /* ── Resizer ── */
 
 .layers-panel__resizer {

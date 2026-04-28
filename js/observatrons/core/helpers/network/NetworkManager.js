@@ -6,6 +6,11 @@ import { disposeGroup, OBS_RADIUS } from '../math-utils.js';
 
 const CELL_SPACING = OBS_RADIUS * 4.0 + 0.3; // 2.3 units
 
+const BOX_DEFAULT_COLOR     = 0xcccccc;
+const BOX_DEFAULT_OPACITY   = 0.5;
+const BOX_HIGHLIGHT_COLOR   = 0x9b87ff;
+const BOX_HIGHLIGHT_OPACITY = 0.85;
+
 /**
  * NetworkManager — manages N observatron mesh groups inside the existing pivot.
  * Each node gets its own channel manager, geometry, bounding box, and HTML label.
@@ -29,6 +34,7 @@ export class NetworkManager {
     this._gridActive = false;
     this._count = 0;
     this._canvasContainer = null;
+    this._selectedIndex = -1;
   }
 
   set canvasContainer(el) { this._canvasContainer = el; }
@@ -144,8 +150,9 @@ export class NetworkManager {
   /** Toggle bounding-box visibility (only shown when count > 1). */
   set gridActive(v) {
     this._gridActive = v;
-    for (const node of this._nodes) {
-      node.box.visible = v && this._count > 1;
+    for (let i = 0; i < this._nodes.length; i++) {
+      const node = this._nodes[i];
+      node.box.visible = (v && this._count > 1) || i === this._selectedIndex;
     }
   }
 
@@ -194,6 +201,27 @@ export class NetworkManager {
     for (const node of this._nodes) node.group.rotation.set(0, 0, 0);
   }
 
+  /** Highlight a node's bounding box (or unhighlight if index === -1). */
+  highlightNode(index) {
+    // unhighlight previous
+    if (this._selectedIndex >= 0 && this._selectedIndex < this._nodes.length) {
+      const prev = this._nodes[this._selectedIndex];
+      prev.box.material.color.setHex(BOX_DEFAULT_COLOR);
+      prev.box.material.opacity = BOX_DEFAULT_OPACITY;
+      prev.box.visible = this._gridActive && this._count > 1;
+    }
+    this._selectedIndex = index;
+    // highlight new
+    if (index >= 0 && index < this._nodes.length) {
+      const node = this._nodes[index];
+      node.box.material.color.setHex(BOX_HIGHLIGHT_COLOR);
+      node.box.material.opacity = BOX_HIGHLIGHT_OPACITY;
+      node.box.visible = true;
+    }
+  }
+
+  get selectedIndex() { return this._selectedIndex; }
+
   /** Clean up all nodes. */
   dispose() {
     this._disposeNodes();
@@ -207,5 +235,6 @@ export class NetworkManager {
     }
     this._nodes = [];
     this._count = 0;
+    this._selectedIndex = -1;
   }
 }

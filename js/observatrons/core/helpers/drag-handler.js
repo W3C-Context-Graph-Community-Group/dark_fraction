@@ -28,6 +28,9 @@ export class DragHandler {
     this._nodeGroups = null;       // THREE.Group[]
     this._onNodeRotation = null;   // (group) => void
     this._activeNode = null;       // the group being dragged
+    this._onNodeClick = null;      // (groupOrNull) => void
+    this._downX = 0;
+    this._downY = 0;
 
     const raycaster = new THREE.Raycaster();
     const pointerNDC = new THREE.Vector2();
@@ -45,6 +48,8 @@ export class DragHandler {
     };
 
     const onDown = (cx, cy) => {
+      this._downX = cx;
+      this._downY = cy;
       // spacebar held → start pan (no raycasting needed)
       if (this._spaceDown && this._onPan) {
         this._panActive = true;
@@ -110,12 +115,31 @@ export class DragHandler {
       }
     };
 
-    const onUp = () => {
+    const onUp = (cx, cy) => {
+      const wasNode = this._activeNode;
       this._dragActive = false;
       this._activeNode = null;
       if (this._panActive) {
         this._panActive = false;
         this._container.style.cursor = this._spaceDown ? 'grab' : '';
+        return;
+      }
+      // detect click (movement < 6px)
+      if (this._onNodeClick) {
+        const dx = cx - this._downX;
+        const dy = cy - this._downY;
+        if (Math.sqrt(dx * dx + dy * dy) < 6) {
+          if (this._networkMode && this._nodeGroups) {
+            this._onNodeClick(wasNode || null);
+          } else {
+            // single observatron mode
+            if (pick(cx, cy)) {
+              this._onNodeClick('single');
+            } else {
+              this._onNodeClick(null);
+            }
+          }
+        }
       }
     };
 
@@ -144,7 +168,7 @@ export class DragHandler {
     // mouse
     this._boundMouseDown = (e) => { if (e.button === 0) onDown(e.clientX, e.clientY); };
     this._boundMouseMove = (e) => onMove(e.clientX, e.clientY, e.shiftKey);
-    this._boundMouseUp   = onUp;
+    this._boundMouseUp   = (e) => onUp(e.clientX, e.clientY);
     container.addEventListener('mousedown', this._boundMouseDown);
     addEventListener('mousemove', this._boundMouseMove);
     addEventListener('mouseup', this._boundMouseUp);
@@ -159,7 +183,10 @@ export class DragHandler {
         e.preventDefault();
       }
     };
-    this._boundTouchEnd = onUp;
+    this._boundTouchEnd = (e) => {
+      const t = e.changedTouches?.[0];
+      onUp(t ? t.clientX : this._downX, t ? t.clientY : this._downY);
+    };
     container.addEventListener('touchstart', this._boundTouchStart, { passive: true });
     container.addEventListener('touchmove', this._boundTouchMove, { passive: false });
     container.addEventListener('touchend', this._boundTouchEnd);
@@ -179,6 +206,8 @@ export class DragHandler {
     this._onNodeRotation = null;
     this._activeNode = null;
   }
+
+  set onNodeClick(fn) { this._onNodeClick = fn; }
 
   dispose() {
     removeEventListener('keydown', this._boundKeyDown);
