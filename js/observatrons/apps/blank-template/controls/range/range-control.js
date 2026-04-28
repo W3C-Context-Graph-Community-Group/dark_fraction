@@ -52,7 +52,7 @@ export class RangeControl {
     labelRow.className = 'range-control__row';
 
     const lbl = document.createElement('div');
-    lbl.className = 'control-panel__label';
+    lbl.className = 'range-control__label';
     lbl.textContent = this._label;
     lbl.style.marginBottom = '0';
     labelRow.appendChild(lbl);

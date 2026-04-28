@@ -5,6 +5,12 @@
   min-width: 160px;
 }
 
+.range-control__label {
+  font-family: var(--cp-font);
+  font-size: 10px;
+  color: var(--cp-text-muted);
+}
+
 .range-control__row {
   display: flex;
   align-items: center;

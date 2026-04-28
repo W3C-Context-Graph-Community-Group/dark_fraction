@@ -153,15 +153,16 @@ export class NetworkManager {
     for (const node of this._nodes) {
       const pos = new THREE.Vector3();
       node.group.getWorldPosition(pos);
-      // offset label below the node
-      pos.y -= OBS_RADIUS * 1.6;
+      // offset label to top-left corner of bounding box
+      pos.x -= OBS_RADIUS * 2.0;
+      pos.y += OBS_RADIUS * 2.0;
 
       pos.project(this._camera);
       const x = (pos.x * 0.5 + 0.5) * innerWidth;
       const y = (-pos.y * 0.5 + 0.5) * innerHeight;
       node.label.style.left = x + 'px';
       node.label.style.top = y + 'px';
-      node.label.style.transform = 'translate(-50%, 0)';
+      node.label.style.transform = 'translate(0, -100%)';
     }
   }
 

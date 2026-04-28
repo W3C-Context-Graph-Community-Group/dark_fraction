@@ -1,14 +1,17 @@
 export class GridControl {
   /**
    * @param {object} opts
-   * @param {(active: boolean) => void} opts.onToggle - called with true/false
+   * @param {(active: boolean) => void} opts.onDotsToggle
+   * @param {(active: boolean) => void} opts.onBoxToggle
    */
-  constructor({ onToggle }) {
-    this._onToggle = onToggle;
-    this._active = false;
+  constructor({ onDotsToggle, onBoxToggle }) {
+    this._onDotsToggle = onDotsToggle;
+    this._onBoxToggle = onBoxToggle;
+    this._dotsActive = false;
+    this._boxActive = false;
     this._el = null;
-    this._btn = null;
-    this._boundClick = this._handleClick.bind(this);
+    this._dotsBtn = null;
+    this._boxBtn = null;
   }
 
   get cssURL() {
@@ -17,43 +20,48 @@ export class GridControl {
 
   mount() {
     this._el = document.createElement('div');
-    this._el.className = 'grid-control';
+    this._el.className = 'grid-panel';
 
-    this._btn = document.createElement('button');
-    this._btn.className = 'grid-control__btn';
-    this._btn.title = 'Toggle grid';
-    this._btn.innerHTML =
-      `<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">` +
-        `<circle cx="3" cy="3" r="1.2"/>` +
-        `<circle cx="8" cy="3" r="1.2"/>` +
-        `<circle cx="13" cy="3" r="1.2"/>` +
-        `<circle cx="3" cy="8" r="1.2"/>` +
-        `<circle cx="8" cy="8" r="1.2"/>` +
-        `<circle cx="13" cy="8" r="1.2"/>` +
-        `<circle cx="3" cy="13" r="1.2"/>` +
-        `<circle cx="8" cy="13" r="1.2"/>` +
-        `<circle cx="13" cy="13" r="1.2"/>` +
-      `</svg>`;
-    this._btn.addEventListener('click', this._boundClick);
-    this._el.appendChild(this._btn);
+    this._dotsBtn = this._buildRow('Dots', (active) => {
+      this._dotsActive = active;
+      this._onDotsToggle(active);
+    });
 
-    const lbl = document.createElement('span');
-    lbl.className = 'grid-control__label';
-    lbl.textContent = 'Grid';
-    this._el.appendChild(lbl);
+    this._boxBtn = this._buildRow('Box', (active) => {
+      this._boxActive = active;
+      this._onBoxToggle(active);
+    });
 
     return this._el;
   }
 
   dispose() {
-    if (this._btn) this._btn.removeEventListener('click', this._boundClick);
     this._el = null;
-    this._btn = null;
+    this._dotsBtn = null;
+    this._boxBtn = null;
   }
 
-  _handleClick() {
-    this._active = !this._active;
-    this._btn.classList.toggle('grid-control__btn--active', this._active);
-    this._onToggle(this._active);
+  _buildRow(label, onChange) {
+    const row = document.createElement('div');
+    row.className = 'grid-panel__row';
+
+    const lbl = document.createElement('span');
+    lbl.className = 'grid-panel__label';
+    lbl.textContent = label;
+    row.appendChild(lbl);
+
+    const btn = document.createElement('button');
+    btn.className = 'grid-panel__toggle';
+    btn.textContent = 'Off';
+    btn.addEventListener('click', () => {
+      const active = !btn.classList.contains('grid-panel__toggle--active');
+      btn.classList.toggle('grid-panel__toggle--active', active);
+      btn.textContent = active ? 'On' : 'Off';
+      onChange(active);
+    });
+    row.appendChild(btn);
+
+    this._el.appendChild(row);
+    return btn;
   }
 }

@@ -133,8 +133,11 @@ export class SceneManager {
     if (this._bgScene && this._bgCamera) {
       this.renderer.autoClear = true;
       this.renderer.render(this._bgScene, this._bgCamera);
+      const savedBg = this.scene.background;
+      this.scene.background = null;
       this.renderer.autoClear = false;
       this.renderer.render(this.scene, this.camera);
+      this.scene.background = savedBg;
       this.renderer.autoClear = true;
     } else {
       this.renderer.render(this.scene, this.camera);

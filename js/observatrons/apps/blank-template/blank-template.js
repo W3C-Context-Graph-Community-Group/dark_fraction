@@ -37,8 +37,9 @@ toolsCard.addControl('download', new SaveImageControl({
   onSave: () => obs.saveImage('observatron.png'),
 }));
 
-/* ── Grid dots (own scene + fixed camera, decoupled from main view) ── */
-let gridActive = false;
+/* ── Grid (dots + box, decoupled) ── */
+let dotsActive = false;
+let boxActive = false;
 
 const gridScene = new THREE.Scene();
 gridScene.background = new THREE.Color(0x0a0a12);
@@ -47,7 +48,7 @@ const gridCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
 gridCamera.position.set(0, 0, 5);
 
 const GRID_SPACING = 0.1;
-const GRID_DOT_PX  = 24;   // target pixel spacing between dots
+const GRID_DOT_PX  = 24;
 const GRID_EXTENT  = 8;
 
 (function buildGrid() {
@@ -77,19 +78,22 @@ function fitGridCamera() {
 fitGridCamera();
 addEventListener('resize', fitGridCamera);
 
-toolsCard.addControl('grid', new GridControl({
-  onToggle: (active) => {
-    gridActive = active;
-    obs._bgCube.visible = active;
-    obs._bgCorner.visible = active;
-    networkMgr.gridActive = active;
+const gridCtrl = new GridControl({
+  onDotsToggle: (active) => {
+    dotsActive = active;
     if (active) {
       obs._sceneMgr.setBgScene(gridScene, gridCamera);
     } else {
       obs._sceneMgr.clearBgScene();
     }
   },
-}));
+  onBoxToggle: (active) => {
+    boxActive = active;
+    obs._bgCube.visible = active;
+    obs._bgCorner.visible = active;
+    networkMgr.gridActive = active;
+  },
+});
 
 toolsCard.addControl('reset', new ResetControl({
   onReset: () => { zoomCtrl.reset(); panCtrl.reset(); rotCtrl.reset(); networkCtrl.reset(); },
@@ -98,6 +102,13 @@ toolsCard.addControl('reset', new ResetControl({
 /* ── Card toggle buttons (all start hidden) ── */
 const ico16 = 'width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"';
 
+const toggleGrid = new CardToggleControl({
+  label: 'Grid',
+  icon: `<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" stroke="none"><circle cx="3" cy="3" r="1.2"/><circle cx="8" cy="3" r="1.2"/><circle cx="13" cy="3" r="1.2"/><circle cx="3" cy="8" r="1.2"/><circle cx="8" cy="8" r="1.2"/><circle cx="13" cy="8" r="1.2"/><circle cx="3" cy="13" r="1.2"/><circle cx="8" cy="13" r="1.2"/><circle cx="13" cy="13" r="1.2"/></svg>`,
+  initial: false,
+  onToggle: (active) => { gridSection.style.display = active ? '' : 'none'; },
+});
+toolsCard.addControl('toggle-grid', toggleGrid);
 const toggleView = new CardToggleControl({
   label: 'View',
   icon: `<svg ${ico16}><ellipse cx="8" cy="8" rx="6" ry="3.5"/><circle cx="8" cy="8" r="1.5" fill="currentColor" stroke="none"/></svg>`,
@@ -184,6 +195,13 @@ zoomCard.addControl('pan', panCtrl);
 const viewSection = panel.register(zoomCard);
 viewSection.style.display = 'none';
 new Draggable(viewSection);
+
+/* ── Grid card ── */
+const gridCard = new CollapsibleCard({ label: 'Grid', id: 'grid', onClose: () => toggleGrid.setActive(false) });
+gridCard.addControl('grid', gridCtrl);
+const gridSection = panel.register(gridCard);
+gridSection.style.display = 'none';
+new Draggable(gridSection);
 
 /* ── Rotation card ── */
 const rotCtrl = new RotationControl({
@@ -371,7 +389,7 @@ const networkCtrl = new NetworkControl({
       obs._bgCube.visible = false;
       obs._bgCorner.visible = false;
       networkMgr.setCount(count, currentRanges());
-      networkMgr.gridActive = gridActive;
+      networkMgr.gridActive = boxActive;
       obs.viewExtent = networkMgr.computeViewExtent();
       obs.fitCamera();
       networkMgr.updateLabels();
@@ -397,7 +415,7 @@ const networkCtrl = new NetworkControl({
       networkMgr.setCount(0);
       obs._drag.clearNetworkMode();
       obs._mesh.group.visible = true;
-      if (gridActive) {
+      if (boxActive) {
         obs._bgCube.visible = true;
         obs._bgCorner.visible = true;
       }
@@ -445,7 +463,7 @@ function projectCorner(cx, cy) {
 let downX = 0, downY = 0;
 wrap.addEventListener('mousedown', (e) => { downX = e.clientX; downY = e.clientY; });
 wrap.addEventListener('mouseup', (e) => {
-  if (!gridActive || !obs._bgCorner.visible) return;
+  if (!boxActive || !obs._bgCorner.visible) return;
   if (Math.abs(e.clientX - downX) + Math.abs(e.clientY - downY) > 6) return;
   if (projectCorner(e.clientX, e.clientY) < 20) animateReset();
 });
