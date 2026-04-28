@@ -20,6 +20,8 @@ import { LightBallAnimator } from '../../core/helpers/fiber_bundle/helpers/Light
 import { NetworkManager }     from '../../core/helpers/network/NetworkManager.js';
 import { NetworkControl }     from './controls/network/network-control.js';
 import { EventsControl }     from './controls/events/events-control.js';
+import { CompareClaims }     from '../../core/helpers/verification/CompareClaims.js';
+import { DecisionGate }      from '../../core/helpers/verification/DecisionGate.js';
 
 const scheme = new ColorScheme('default');
 const obs = new Observatron(document.getElementById('canvas-wrap'));
@@ -272,6 +274,10 @@ const animator = new LightBallAnimator({
   pivot: obs._pivot,
   connections: fiberMgr._connections,
   resolveEndpoint,
+  onArrival: (connectionId, conn) => {
+    CompareClaims.run(connectionId, conn.source, conn.target);
+    DecisionGate.run(connectionId, conn.source, conn.target);
+  },
 });
 obs._sceneMgr.onTick(dt => animator.tick(dt));
 

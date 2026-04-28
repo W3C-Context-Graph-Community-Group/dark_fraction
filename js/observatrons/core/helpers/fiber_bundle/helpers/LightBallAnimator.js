@@ -12,10 +12,11 @@ export class LightBallAnimator {
    * @param {Map}          opts.connections       — FiberBundleManager._connections (shared reference)
    * @param {function}     opts.resolveEndpoint   — (nodeId, spikeIndex) => { direction, apex, base }
    */
-  constructor({ pivot, connections, resolveEndpoint }) {
+  constructor({ pivot, connections, resolveEndpoint, onArrival }) {
     this._pivot           = pivot;
     this._connections     = connections;
     this._resolveEndpoint = resolveEndpoint;
+    this._onArrival       = onArrival || null;
     this._animations      = new Map(); // connectionId → { balls: [...] }
   }
 
@@ -149,6 +150,38 @@ export class LightBallAnimator {
     const finished = [];
 
     for (const [id, anim] of this._animations) {
+      // ── Flash phase: 0.5 s fade-in + 0.5 s fade-out (1 s total) ──
+      if (anim.arrived) {
+        anim.flashTimer += dt;
+        const conn = this._connections.get(id);
+        const ring = conn?.rings[conn.rings.length - 1];
+        if (ring?.mesh) {
+          const mat = ring.mesh.material;
+          // Triangle envelope: ramps 0→1 over first 0.5 s, then 1→0 over next 0.5 s
+          const half = 0.5;
+          const brightness = anim.flashTimer < half
+            ? Math.min(1, anim.flashTimer / half)
+            : Math.max(0, 1 - (anim.flashTimer - half) / half);
+          mat.color.setHex(0xffffff);
+          mat.emissive.setHex(0xffffff);
+          mat.emissiveIntensity = brightness;
+          mat.opacity = ring._opacity + (1 - ring._opacity) * brightness;
+        }
+        if (anim.flashTimer >= 1.0) {
+          // Restore target ring original appearance
+          if (ring?.mesh) {
+            const mat = ring.mesh.material;
+            mat.color.setHex(ring._color);
+            mat.emissive.setHex(ring._emissive);
+            mat.emissiveIntensity = ring._emissiveIntensity;
+            mat.opacity = ring._opacity;
+          }
+          finished.push(id);
+        }
+        continue;
+      }
+
+      // ── Travel phase: balls moving along fiber paths ──
       let allDone = true;
 
       for (const entry of anim.balls) {
@@ -166,10 +199,16 @@ export class LightBallAnimator {
         entry.ball.position.set(pos.x, pos.y, pos.z);
       }
 
-      if (allDone) finished.push(id);
+      if (allDone) {
+        anim.arrived = true;
+        anim.flashTimer = 0;
+        if (this._onArrival) {
+          const conn = this._connections.get(id);
+          this._onArrival(id, conn);
+        }
+      }
     }
 
-    // Auto-remove completed animations
     for (const id of finished) {
       this.stopOnConnection(id);
     }
