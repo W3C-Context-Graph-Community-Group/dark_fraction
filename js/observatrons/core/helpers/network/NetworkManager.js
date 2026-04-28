@@ -4,7 +4,7 @@ import { SpikeBuilder } from '../spike-builder.js';
 import { FacetHeight } from '../../facet-height.js';
 import { disposeGroup, OBS_RADIUS } from '../math-utils.js';
 
-const CELL_SPACING = OBS_RADIUS * 3.0 + 0.3; // 1.8 units
+const CELL_SPACING = OBS_RADIUS * 4.0 + 0.3; // 2.3 units
 
 /**
  * NetworkManager — manages N observatron mesh groups inside the existing pivot.
@@ -82,7 +82,7 @@ export class NetworkManager {
       nodeGroup.add(meshGroup);
 
       // bounding box (same style as SceneManager.bgCube)
-      const BOX_SIZE = OBS_RADIUS * 3.0;
+      const BOX_SIZE = OBS_RADIUS * 4.0;
       const cubeGeo = new THREE.BoxGeometry(BOX_SIZE, BOX_SIZE, BOX_SIZE);
       const cubeEdges = new THREE.EdgesGeometry(cubeGeo);
       const box = new THREE.LineSegments(cubeEdges,

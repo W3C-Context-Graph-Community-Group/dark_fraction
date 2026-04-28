@@ -37,7 +37,7 @@ export class SceneManager {
     this.scene.add(this.pivot);
 
     // ── wireframe cube + corner marker ──
-    const BOX_SIZE = OBS_RADIUS * 3.0;
+    const BOX_SIZE = OBS_RADIUS * 4.0;
     const cubeGeo = new THREE.BoxGeometry(BOX_SIZE, BOX_SIZE, BOX_SIZE);
     const cubeEdges = new THREE.EdgesGeometry(cubeGeo);
     this.bgCube = new THREE.LineSegments(cubeEdges,

@@ -25,6 +25,7 @@
 }
 
 .collapsible-card__toggle {
+  margin-left: auto;
   background: none;
   border: 1px solid var(--cp-border);
   color: var(--cp-text-muted);

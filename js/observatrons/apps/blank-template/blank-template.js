@@ -37,70 +37,38 @@ toolsCard.addControl('download', new SaveImageControl({
 }));
 
 /* ── Grid dots ── */
-let gridBack = null;
-let gridFront = null;
-let gridRAF = null;
+let gridDots = null;
+let gridActive = false;
 
-function isAligned() {
-  const r = obs._pivot.rotation;
-  const eps = 0.05;
-  const xMod = ((r.x % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
-  const yMod = ((r.y % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
-  return (xMod < eps || xMod > Math.PI * 2 - eps) &&
-         (yMod < eps || yMod > Math.PI * 2 - eps);
-}
-
-function gridTick() {
-  if (!gridFront) return;
-  gridFront.visible = isAligned();
-  gridRAF = requestAnimationFrame(gridTick);
-}
-
-function makePoints(verts, color, opacity) {
+function buildGrid() {
+  const spacing = 0.1;
+  const extent = 8;
+  const verts = [];
+  for (let x = -extent; x <= extent; x += spacing) {
+    for (let y = -extent; y <= extent; y += spacing) {
+      verts.push(x, y, -1);
+    }
+  }
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
   const mat = new THREE.PointsMaterial({
-    color,
+    color: 0x4a90d9,
     size: 3,
     sizeAttenuation: false,
     transparent: true,
-    opacity,
+    opacity: 0.35,
     depthWrite: false,
   });
   return new THREE.Points(geo, mat);
 }
 
-function buildGridLayers() {
-  const spacing = 0.1;
-  const extent = 1.5;
-  const half = 0.75;
-
-  const backVerts = [];
-  const frontVerts = [];
-
-  for (let x = -extent; x <= extent; x += spacing) {
-    for (let y = -extent; y <= extent; y += spacing) {
-      backVerts.push(x, y, -0.55);
-      if (x > -half && x < half && y > -half && y < half) {
-        frontVerts.push(x, y, -0.45);
-      }
-    }
-  }
-
-  return {
-    back:  makePoints(backVerts,  0x4a90d9, 0.35),
-    front: makePoints(frontVerts, 0xffffff, 0.35),
-  };
+function disposeGrid() {
+  if (!gridDots) return;
+  obs._scene.remove(gridDots);
+  gridDots.geometry.dispose();
+  gridDots.material.dispose();
+  gridDots = null;
 }
-
-function disposePoints(pts) {
-  if (!pts) return;
-  obs._scene.remove(pts);
-  pts.geometry.dispose();
-  pts.material.dispose();
-}
-
-let gridActive = false;
 
 toolsCard.addControl('grid', new GridControl({
   onToggle: (active) => {
@@ -109,18 +77,10 @@ toolsCard.addControl('grid', new GridControl({
     obs._bgCorner.visible = active;
     networkMgr.gridActive = active;
     if (active) {
-      const layers = buildGridLayers();
-      gridBack = layers.back;
-      gridFront = layers.front;
-      obs._scene.add(gridBack);
-      obs._scene.add(gridFront);
-      gridTick();
+      gridDots = buildGrid();
+      obs._scene.add(gridDots);
     } else {
-      if (gridRAF) { cancelAnimationFrame(gridRAF); gridRAF = null; }
-      disposePoints(gridBack);
-      disposePoints(gridFront);
-      gridBack = null;
-      gridFront = null;
+      disposeGrid();
     }
   },
 }));
@@ -132,54 +92,62 @@ toolsCard.addControl('reset', new ResetControl({
 /* ── Card toggle buttons (all start hidden) ── */
 const ico16 = 'width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"';
 
-toolsCard.addControl('toggle-view', new CardToggleControl({
+const toggleView = new CardToggleControl({
   label: 'View',
   icon: `<svg ${ico16}><ellipse cx="8" cy="8" rx="6" ry="3.5"/><circle cx="8" cy="8" r="1.5" fill="currentColor" stroke="none"/></svg>`,
   initial: false,
   onToggle: (active) => { viewSection.style.display = active ? '' : 'none'; },
-}));
-toolsCard.addControl('toggle-rot', new CardToggleControl({
+});
+toolsCard.addControl('toggle-view', toggleView);
+const toggleRot = new CardToggleControl({
   label: 'Rot',
   icon: `<svg ${ico16}><path d="M2 8a6 6 0 0110.5-4"/><polyline points="12 1 13 4 10 5"/><path d="M14 8a6 6 0 01-10.5 4"/><polyline points="4 15 3 12 6 11"/></svg>`,
   initial: false,
   onToggle: (active) => { rotSection.style.display = active ? '' : 'none'; },
-}));
-toolsCard.addControl('toggle-filters', new CardToggleControl({
+});
+toolsCard.addControl('toggle-rot', toggleRot);
+const toggleFilters = new CardToggleControl({
   label: 'Filters',
   icon: `<svg ${ico16}><path d="M2 3h12l-4.5 5v4l-3 1.5V8z"/></svg>`,
   initial: false,
   onToggle: (active) => { filtersSection.style.display = active ? '' : 'none'; },
-}));
-toolsCard.addControl('toggle-color', new CardToggleControl({
+});
+toolsCard.addControl('toggle-filters', toggleFilters);
+const toggleColor = new CardToggleControl({
   label: 'Color',
   icon: `<svg ${ico16}><path d="M8 1.5a5.5 5.5 0 00-1 10.9c1 .2 1-.5 1-.9v-.3c0-.6-.4-.8-.8-1-.5-.2-1.1-.4-1.1-1.4A4 4 0 018 3.5a4 4 0 012.9 5.3c0 1-.6 1.2-1.1 1.4-.4.2-.8.4-.8 1v.3c0 .4 0 1.1 1 .9A5.5 5.5 0 008 1.5z"/><circle cx="6" cy="6.5" r="1" fill="currentColor" stroke="none"/><circle cx="8" cy="5" r="1" fill="currentColor" stroke="none"/><circle cx="10" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>`,
   initial: false,
   onToggle: (active) => { colorSection.style.display = active ? '' : 'none'; },
-}));
-toolsCard.addControl('toggle-fiber', new CardToggleControl({
+});
+toolsCard.addControl('toggle-color', toggleColor);
+const toggleFiber = new CardToggleControl({
   label: 'Fiber',
   icon: `<svg ${ico16}><circle cx="4" cy="4" r="1.5"/><circle cx="12" cy="4" r="1.5"/><circle cx="8" cy="12" r="1.5"/><line x1="5.2" y1="5" x2="7" y2="10.8"/><line x1="10.8" y1="5" x2="9" y2="10.8"/><line x1="5.5" y1="4" x2="10.5" y2="4"/></svg>`,
   initial: false,
   onToggle: (active) => { fiberSection.style.display = active ? '' : 'none'; },
-}));
-toolsCard.addControl('toggle-style', new CardToggleControl({
+});
+toolsCard.addControl('toggle-fiber', toggleFiber);
+const toggleStyle = new CardToggleControl({
   label: 'Style',
   icon: `<svg ${ico16}><circle cx="8" cy="8" r="6"/><line x1="8" y1="2" x2="8" y2="14"/><line x1="2" y1="8" x2="14" y2="8"/></svg>`,
   initial: false,
   onToggle: (active) => { styleSection.style.display = active ? '' : 'none'; },
-}));
-toolsCard.addControl('toggle-net', new CardToggleControl({
+});
+toolsCard.addControl('toggle-style', toggleStyle);
+const toggleNet = new CardToggleControl({
   label: 'Net',
   icon: `<svg ${ico16}><circle cx="4" cy="4" r="1.5"/><circle cx="12" cy="4" r="1.5"/><circle cx="4" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><line x1="5.5" y1="4" x2="10.5" y2="4"/><line x1="4" y1="5.5" x2="4" y2="10.5"/><line x1="12" y1="5.5" x2="12" y2="10.5"/><line x1="5.5" y1="12" x2="10.5" y2="12"/><line x1="5.5" y1="5.5" x2="10.5" y2="10.5"/><line x1="10.5" y1="5.5" x2="5.5" y2="10.5"/></svg>`,
   initial: false,
   onToggle: (active) => { networkSection.style.display = active ? '' : 'none'; },
-}));
-toolsCard.addControl('toggle-events', new CardToggleControl({
+});
+toolsCard.addControl('toggle-net', toggleNet);
+const toggleEvents = new CardToggleControl({
   label: 'Events',
   icon: `<svg ${ico16}><circle cx="8" cy="8" r="2" fill="currentColor" stroke="none"/><circle cx="8" cy="8" r="5"/><path d="M13 8h2M1 8h2M8 1v2M8 13v2"/></svg>`,
   initial: false,
   onToggle: (active) => { eventsSection.style.display = active ? '' : 'none'; },
-}));
+});
+toolsCard.addControl('toggle-events', toggleEvents);
 
 const toolsSection = panel.register(toolsCard);
 new Draggable(toolsSection);
@@ -197,7 +165,7 @@ const panCtrl = new PanControl({
 });
 obs.onPanChange = (x, y) => { panCtrl.update(x, y); networkMgr.updateLabels(); };
 
-const zoomCard = new CollapsibleCard({ label: 'View', id: 'view' });
+const zoomCard = new CollapsibleCard({ label: 'View', id: 'view', onClose: () => toggleView.setActive(false) });
 zoomCard.addControl('zoom', zoomCtrl);
 zoomCard.addControl('pan', panCtrl);
 const viewSection = panel.register(zoomCard);
@@ -211,14 +179,14 @@ const rotCtrl = new RotationControl({
 });
 obs.onRotationChange = (x, y, z) => { rotCtrl.update(x, y, z); networkMgr.updateLabels(); };
 
-const rotCard = new CollapsibleCard({ label: 'Rotation', id: 'rotation' });
+const rotCard = new CollapsibleCard({ label: 'Rotation', id: 'rotation', onClose: () => toggleRot.setActive(false) });
 rotCard.addControl('axes', rotCtrl);
 const rotSection = panel.register(rotCard);
 rotSection.style.display = 'none';
 new Draggable(rotSection);
 
 /* ── Filters card ── */
-const filtersCard = new CollapsibleCard({ label: 'Filters', id: 'filters', layout: 'row' });
+const filtersCard = new CollapsibleCard({ label: 'Filters', id: 'filters', onClose: () => toggleFilters.setActive(false) });
 filtersCard.addControl('channels', new RangeControl({
   label: 'Channels',
   onChange: (range) => { obs.channelsRange = range; },
@@ -313,7 +281,7 @@ const fiberCtrl = new FiberBundleControl({
   onAnimateConnection: (id) => animator.toggle(id),
 });
 
-const fiberCard = new CollapsibleCard({ label: 'Fiber Bundles', id: 'fiber-bundles' });
+const fiberCard = new CollapsibleCard({ label: 'Fiber Bundles', id: 'fiber-bundles', onClose: () => toggleFiber.setActive(false) });
 fiberCard.addControl('ring', fiberCtrl);
 const fiberSection = panel.register(fiberCard);
 fiberSection.style.display = 'none';
@@ -331,7 +299,7 @@ function syncEventsPanel() {
   eventsCtrl.updateConnectionsList(fiberMgr.connections);
 }
 
-const eventsCard = new CollapsibleCard({ label: 'Events', id: 'events' });
+const eventsCard = new CollapsibleCard({ label: 'Events', id: 'events', onClose: () => toggleEvents.setActive(false) });
 eventsCard.addControl('events', eventsCtrl);
 const eventsSection = panel.register(eventsCard);
 eventsSection.style.display = 'none';
@@ -351,7 +319,7 @@ const dotRadiusCtrl = new StyleControl({
   onChange: (frac) => { obs.dotScale = 1.0 + frac * 1.5; },
 });
 
-const styleCard = new CollapsibleCard({ label: 'Style', id: 'style' });
+const styleCard = new CollapsibleCard({ label: 'Style', id: 'style', onClose: () => toggleStyle.setActive(false) });
 styleCard.addControl('facet-opacity', styleCtrl);
 styleCard.addControl('dot-radius', dotRadiusCtrl);
 const styleSection = panel.register(styleCard);
@@ -429,7 +397,7 @@ const networkCtrl = new NetworkControl({
   },
 });
 
-const networkCard = new CollapsibleCard({ label: 'Network', id: 'network' });
+const networkCard = new CollapsibleCard({ label: 'Network', id: 'network', onClose: () => toggleNet.setActive(false) });
 networkCard.addControl('observatrons', networkCtrl);
 const networkSection = panel.register(networkCard);
 networkSection.style.display = 'none';
@@ -444,7 +412,7 @@ const cornerWorld = new THREE.Vector3();
 const wrap = document.getElementById('canvas-wrap');
 
 function projectCorner(cx, cy) {
-  const h = 0.75;
+  const h = 1.0;
   cornerWorld.set(-h, h, h);
   obs._bgCorner.localToWorld(cornerWorld);
   const screen = obs._projectToScreen(cornerWorld);

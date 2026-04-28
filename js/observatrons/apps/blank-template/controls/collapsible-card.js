@@ -17,11 +17,12 @@ export class CollapsibleCard {
    * @param {boolean} [opts.expanded=true] — initial state
    * @param {'stack'|'row'} [opts.layout='stack'] — flex direction of the body
    */
-  constructor({ label, id, expanded = true, layout = 'stack' }) {
+  constructor({ label, id, expanded = true, layout = 'stack', onClose }) {
     this._label = label;
     this._id = id;
     this._expanded = expanded;
     this._layout = layout;
+    this._onClose = onClose || null;
     this._sections = new Map();     // id → { el, control? }
     this._childCSS = [];            // URLs from child controls
     this._el = null;
@@ -116,6 +117,10 @@ export class CollapsibleCard {
   }
 
   _toggle() {
+    if (this._onClose) {
+      this._onClose();
+      return;
+    }
     this._expanded = !this._expanded;
     this._el.classList.toggle('collapsible-card--collapsed', !this._expanded);
     this._syncToggle();

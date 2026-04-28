@@ -46,9 +46,13 @@ export class CardToggleControl {
     this._btn = null;
   }
 
-  _handleClick() {
-    this._active = !this._active;
-    this._btn.classList.toggle('card-toggle__btn--active', this._active);
+  setActive(active) {
+    this._active = active;
+    if (this._btn) this._btn.classList.toggle('card-toggle__btn--active', this._active);
     this._onToggle(this._active);
+  }
+
+  _handleClick() {
+    this.setActive(!this._active);
   }
 }
