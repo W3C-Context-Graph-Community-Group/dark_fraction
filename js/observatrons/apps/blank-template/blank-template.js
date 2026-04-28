@@ -21,6 +21,7 @@ import { NetworkManager }     from '../../core/helpers/network/NetworkManager.js
 import { NetworkControl }     from './controls/network/network-control.js';
 import { EventsControl }     from './controls/events/events-control.js';
 import { ClaimsControl }     from './controls/claims/claims-control.js';
+import { LayersPanel }       from './controls/layers-panel/layers-panel.js';
 import { CompareClaims }     from '../../core/helpers/verification/CompareClaims.js';
 import { DecisionGate }      from '../../core/helpers/verification/DecisionGate.js';
 
@@ -28,6 +29,25 @@ const scheme = new ColorScheme('default');
 const obs = new Observatron(document.getElementById('canvas-wrap'));
 obs.colorScheme = scheme;
 obs.exec('seed', { seed: 0xC6A107 });
+
+/* ── Layers panel (left sidebar) ── */
+const layersPanel = new LayersPanel({
+  onResize: () => {
+    obs._sceneMgr.triggerResize();
+    fitGridCamera();
+    networkMgr.updateLabels();
+  },
+});
+// Load CSS and mount
+const lpCSS = layersPanel.cssURL;
+if (!document.querySelector(`link[href="${lpCSS}"]`)) {
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = lpCSS;
+  document.head.appendChild(link);
+}
+document.body.appendChild(layersPanel.mount());
+layersPanel.setEntries([{ id: '0', url: 'cgp:/s/0/o/0' }]);
 
 const panel = new ControlPanel();
 
@@ -67,8 +87,9 @@ const GRID_EXTENT  = 8;
 })();
 
 function fitGridCamera() {
-  const h = (innerHeight * GRID_SPACING) / GRID_DOT_PX;
-  const w = (innerWidth  * GRID_SPACING) / GRID_DOT_PX;
+  const canvasWrap = document.getElementById('canvas-wrap');
+  const h = (canvasWrap.clientHeight * GRID_SPACING) / GRID_DOT_PX;
+  const w = (canvasWrap.clientWidth  * GRID_SPACING) / GRID_DOT_PX;
   gridCamera.left   = -w / 2;
   gridCamera.right  =  w / 2;
   gridCamera.top    =  h / 2;
@@ -372,6 +393,7 @@ const networkMgr = new NetworkManager({
   colorScheme: scheme,
   baseSeed: 0xC6A107,
 });
+networkMgr.canvasContainer = document.getElementById('canvas-wrap');
 
 function currentRanges() {
   return {
@@ -411,6 +433,12 @@ const networkCtrl = new NetworkControl({
           networkMgr.updateLabels();
         }
       );
+      // Update layers panel for N observatrons
+      const entries = [];
+      for (let i = 0; i < count; i++) {
+        entries.push({ id: String(i), url: `cgp:/s/0/o/${i}` });
+      }
+      layersPanel.setEntries(entries);
     } else {
       networkMgr.setCount(0);
       obs._drag.clearNetworkMode();
@@ -421,6 +449,7 @@ const networkCtrl = new NetworkControl({
       }
       obs.viewExtent = { worldW: 2.5, worldH: 2.2 };
       obs.fitCamera();
+      layersPanel.setEntries([{ id: '0', url: 'cgp:/s/0/o/0' }]);
     }
     // Update fiber bundle mode
     fiberCtrl.setMode(count, (nodeId) => {

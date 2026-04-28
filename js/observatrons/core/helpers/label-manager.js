@@ -4,8 +4,9 @@ import * as THREE from 'three';
  * Manages HTML overlay labels that display stats beneath the observatron.
  */
 export class LabelManager {
-  constructor(camera) {
+  constructor(camera, container) {
     this._camera = camera;
+    this._container = container;
     this._overlay = document.getElementById('overlay');
     this._labelEl = null;
     this._metaEl  = null;
@@ -15,8 +16,8 @@ export class LabelManager {
   projectToScreen(v3) {
     const p = v3.clone().project(this._camera);
     return {
-      x: (p.x * 0.5 + 0.5) * innerWidth,
-      y: (1 - (p.y * 0.5 + 0.5)) * innerHeight,
+      x: (p.x * 0.5 + 0.5) * this._container.clientWidth,
+      y: (1 - (p.y * 0.5 + 0.5)) * this._container.clientHeight,
     };
   }
 

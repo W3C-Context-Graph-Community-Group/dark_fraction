@@ -28,7 +28,10 @@ export class NetworkManager {
     this._nodes = [];
     this._gridActive = false;
     this._count = 0;
+    this._canvasContainer = null;
   }
+
+  set canvasContainer(el) { this._canvasContainer = el; }
 
   /**
    * Build or remove node groups to reach count `n`.
@@ -158,8 +161,10 @@ export class NetworkManager {
       pos.y += OBS_RADIUS * 2.0;
 
       pos.project(this._camera);
-      const x = (pos.x * 0.5 + 0.5) * innerWidth;
-      const y = (-pos.y * 0.5 + 0.5) * innerHeight;
+      const cw = this._canvasContainer ? this._canvasContainer.clientWidth : innerWidth;
+      const ch = this._canvasContainer ? this._canvasContainer.clientHeight : innerHeight;
+      const x = (pos.x * 0.5 + 0.5) * cw;
+      const y = (-pos.y * 0.5 + 0.5) * ch;
       node.label.style.left = x + 'px';
       node.label.style.top = y + 'px';
       node.label.style.transform = 'translate(0, -100%)';

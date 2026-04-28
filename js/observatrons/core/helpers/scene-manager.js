@@ -18,7 +18,7 @@ export class SceneManager {
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
     this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-    this.renderer.setSize(innerWidth, innerHeight);
+    this.renderer.setSize(containerEl.clientWidth, containerEl.clientHeight);
     this.renderer.domElement.style.pointerEvents = 'none';
     containerEl.appendChild(this.renderer.domElement);
 
@@ -66,7 +66,7 @@ export class SceneManager {
     // ── resize ──
     this._onResize = null;
     this._boundResize = () => {
-      this.renderer.setSize(innerWidth, innerHeight);
+      this.renderer.setSize(this._container.clientWidth, this._container.clientHeight);
       this.fitCamera();
       if (this._onResize) this._onResize();
     };
@@ -91,6 +91,9 @@ export class SceneManager {
   set onResize(fn) { this._onResize = fn; }
   set viewExtent({ worldW, worldH }) { this._worldW = worldW; this._worldH = worldH; }
 
+  /** Programmatically trigger a resize (e.g. when the container changes size). */
+  triggerResize() { this._boundResize(); }
+
   /** Set a background scene rendered before the main scene with its own camera. */
   setBgScene(scene, camera) { this._bgScene = scene; this._bgCamera = camera; }
   clearBgScene() { this._bgScene = null; this._bgCamera = null; }
@@ -103,7 +106,7 @@ export class SceneManager {
   fitCamera() {
     const worldW = this._worldW ?? 2.5;
     const worldH = this._worldH ?? 2.2;
-    const aspect = innerWidth / innerHeight;
+    const aspect = this._container.clientWidth / this._container.clientHeight;
     let viewW, viewH;
     if (aspect > worldW / worldH) {
       viewH = worldH;

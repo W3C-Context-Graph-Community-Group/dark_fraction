@@ -33,8 +33,9 @@ export class DragHandler {
     const pointerNDC = new THREE.Vector2();
 
     const setNDC = (cx, cy) => {
-      pointerNDC.x = (cx / innerWidth) * 2 - 1;
-      pointerNDC.y = -(cy / innerHeight) * 2 + 1;
+      const rect = this._container.getBoundingClientRect();
+      pointerNDC.x = ((cx - rect.left) / rect.width) * 2 - 1;
+      pointerNDC.y = -((cy - rect.top) / rect.height) * 2 + 1;
     };
 
     const pick = (cx, cy) => {

@@ -6,16 +6,17 @@
 <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
 <title>Blank Template · Observatron</title>
 <style>
+  :root { --lp-width: 350px; }
   html, body {
     margin: 0; padding: 0; height: 100%;
     background: #0a0a12; color: #eee;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     overflow: hidden;
   }
-  #canvas-wrap { position: fixed; inset: 0; }
+  #canvas-wrap { position: fixed; top: 0; right: 0; bottom: 0; left: var(--lp-width, 350px); }
 
   #overlay {
-    position: fixed; inset: 0;
+    position: fixed; top: 0; right: 0; bottom: 0; left: var(--lp-width, 350px);
     pointer-events: none;
     z-index: 5;
   }

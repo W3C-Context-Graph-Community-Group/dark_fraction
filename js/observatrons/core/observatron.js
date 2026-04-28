@@ -46,7 +46,7 @@ export class Observatron {
     this._mesh = null;
 
     // ── labels ──
-    this._labels = new LabelManager(this._sceneMgr.camera);
+    this._labels = new LabelManager(this._sceneMgr.camera, containerEl);
 
     // ── drag ──
     this._drag = new DragHandler(
@@ -247,8 +247,8 @@ export class Observatron {
 
   _handlePan(dx, dy) {
     const cam = this._sceneMgr.camera;
-    const worldPerPixelX = (cam.right - cam.left) / innerWidth;
-    const worldPerPixelY = (cam.top - cam.bottom) / innerHeight;
+    const worldPerPixelX = (cam.right - cam.left) / this._container.clientWidth;
+    const worldPerPixelY = (cam.top - cam.bottom) / this._container.clientHeight;
     this._panX -= dx * worldPerPixelX;
     this._panY += dy * worldPerPixelY;
     this._applyPan();
