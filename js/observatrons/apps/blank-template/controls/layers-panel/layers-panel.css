@@ -32,27 +32,83 @@
   padding: 0 8px;
 }
 
-.layers-panel__item {
-  padding: 8px;
+/* ── Observatron row (frame) ── */
+
+.layers-panel__obs {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
   font-size: 12px;
+  font-weight: 500;
   color: var(--cp-text);
   border-radius: 6px;
   cursor: default;
+  user-select: none;
+}
+
+.layers-panel__obs:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.layers-panel__obs--selected {
+  background: var(--cp-accent-dim);
+  color: var(--cp-accent);
+}
+
+.layers-panel__obs--selected:hover {
+  background: var(--cp-accent-dim);
+}
+
+.layers-panel__toggle {
+  flex-shrink: 0;
+  width: 16px;
+  font-size: 8px;
+  text-align: center;
+  cursor: pointer;
+  color: var(--cp-text-muted);
+  margin-right: 4px;
+}
+
+.layers-panel__toggle:hover {
+  color: var(--cp-text);
+}
+
+.layers-panel__obs-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+/* ── Spike children ── */
+
+.layers-panel__children {
+  padding-left: 20px;
+}
+
+.layers-panel__spike {
+  padding: 4px 8px;
+  font-size: 11px;
+  color: var(--cp-text-muted);
+  border-radius: 4px;
+  cursor: default;
+  user-select: none;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.layers-panel__item:hover {
+.layers-panel__spike:hover {
   background: rgba(255, 255, 255, 0.05);
+  color: var(--cp-text);
 }
 
-.layers-panel__item--selected {
+.layers-panel__spike--selected {
   background: var(--cp-accent-dim);
   color: var(--cp-accent);
 }
 
-.layers-panel__item--selected:hover {
+.layers-panel__spike--selected:hover {
   background: var(--cp-accent-dim);
 }
 

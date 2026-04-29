@@ -1,5 +1,6 @@
 /**
- * LayersPanel — left sidebar listing observatron IDs with CGP URLs.
+ * LayersPanel — left sidebar with Figma-style layer tree.
+ * Observatrons are expandable frames; spikes are child layers.
  * Resizable via drag handle on right edge.
  */
 export class LayersPanel {
@@ -8,14 +9,16 @@ export class LayersPanel {
   /**
    * @param {object} opts
    * @param {function} [opts.onResize] — called with current width after drag
-   * @param {function} [opts.onItemClick] — called with entry id when item clicked
+   * @param {function} [opts.onItemClick] — called with (obsId) when observatron row clicked
+   * @param {function} [opts.onSpikeClick] — called with (obsId, spikeIndex) when spike row clicked
    * @param {number}   [opts.initialWidth=350]
    * @param {number}   [opts.minWidth=200]
    * @param {number}   [opts.maxWidth=600]
    */
-  constructor({ onResize, onItemClick, initialWidth = 350, minWidth = 200, maxWidth = 600 } = {}) {
+  constructor({ onResize, onItemClick, onSpikeClick, initialWidth = 350, minWidth = 200, maxWidth = 600 } = {}) {
     this._onResize = onResize || null;
     this._onItemClick = onItemClick || null;
+    this._onSpikeClick = onSpikeClick || null;
     this._width = initialWidth;
     this._minWidth = minWidth;
     this._maxWidth = maxWidth;
@@ -23,6 +26,8 @@ export class LayersPanel {
     this._listEl = null;
     this._resizer = null;
     this._selectedId = null;
+    this._selectedSpikeKey = null; // "obsId:spikeIndex"
+    this._expandedObs = new Set();
   }
 
   mount() {
@@ -52,46 +57,125 @@ export class LayersPanel {
   }
 
   /**
-   * Rebuild list items.
-   * @param {Array<{ id: string, url: string }>} entries
+   * Rebuild the tree.
+   * @param {Array<{ id: string, url: string, spikes?: Array<{ index: number, url: string }> }>} entries
    */
   setEntries(entries) {
     if (!this._listEl) return;
     this._listEl.innerHTML = '';
     this._selectedId = null;
+    this._selectedSpikeKey = null;
+
     for (const entry of entries) {
-      const item = document.createElement('div');
-      item.className = 'layers-panel__item';
-      item.setAttribute('data-cgp-observatron_id', entry.id);
-      item.textContent = entry.url;
-      item.addEventListener('click', () => {
+      const isExpanded = this._expandedObs.has(entry.id);
+
+      // observatron row (frame)
+      const obsRow = document.createElement('div');
+      obsRow.className = 'layers-panel__obs';
+      obsRow.setAttribute('data-cgp-observatron_id', entry.id);
+
+      const toggle = document.createElement('span');
+      toggle.className = 'layers-panel__toggle';
+      toggle.textContent = isExpanded ? '\u25BC' : '\u25B6';
+      const hasSpikes = entry.spikes && entry.spikes.length > 0;
+      if (!hasSpikes) toggle.style.visibility = 'hidden';
+      obsRow.appendChild(toggle);
+
+      const label = document.createElement('span');
+      label.className = 'layers-panel__obs-label';
+      label.textContent = entry.url;
+      obsRow.appendChild(label);
+
+      // click on toggle → expand/collapse
+      toggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (isExpanded) {
+          this._expandedObs.delete(entry.id);
+        } else {
+          this._expandedObs.add(entry.id);
+        }
+        // re-render preserving expand state
+        this.setEntries(this._lastEntries);
+      });
+
+      // click on obs row → select observatron
+      obsRow.addEventListener('click', () => {
         if (this._onItemClick) this._onItemClick(entry.id);
       });
-      this._listEl.appendChild(item);
+
+      this._listEl.appendChild(obsRow);
+
+      // spike children (visible only when expanded)
+      if (hasSpikes && isExpanded) {
+        const childContainer = document.createElement('div');
+        childContainer.className = 'layers-panel__children';
+
+        for (const spike of entry.spikes) {
+          const spikeRow = document.createElement('div');
+          spikeRow.className = 'layers-panel__spike';
+          const key = `${entry.id}:${spike.index}`;
+          spikeRow.setAttribute('data-spike-key', key);
+          spikeRow.textContent = spike.url;
+
+          spikeRow.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (this._onSpikeClick) this._onSpikeClick(entry.id, spike.index);
+          });
+
+          childContainer.appendChild(spikeRow);
+        }
+        this._listEl.appendChild(childContainer);
+      }
     }
+
+    this._lastEntries = entries;
   }
 
   /**
-   * Visually select an item by id (or deselect if null).
+   * Visually select an observatron by id (or deselect if null).
    * @param {string|null} id
    */
   selectItem(id) {
-    // remove previous selection
+    // clear previous obs selection
     if (this._selectedId !== null && this._listEl) {
-      const prev = this._listEl.querySelector(`[data-cgp-observatron_id="${this._selectedId}"]`);
-      if (prev) prev.classList.remove('layers-panel__item--selected');
+      const prev = this._listEl.querySelector(`.layers-panel__obs[data-cgp-observatron_id="${this._selectedId}"]`);
+      if (prev) prev.classList.remove('layers-panel__obs--selected');
     }
     this._selectedId = id;
     if (id !== null && this._listEl) {
-      const el = this._listEl.querySelector(`[data-cgp-observatron_id="${id}"]`);
+      const el = this._listEl.querySelector(`.layers-panel__obs[data-cgp-observatron_id="${id}"]`);
       if (el) {
-        el.classList.add('layers-panel__item--selected');
+        el.classList.add('layers-panel__obs--selected');
         el.scrollIntoView({ block: 'nearest' });
       }
     }
   }
 
+  /**
+   * Visually select a spike row (or deselect if null).
+   * @param {string|null} obsId
+   * @param {number|null} spikeIndex
+   */
+  selectSpike(obsId, spikeIndex) {
+    // clear previous spike selection
+    if (this._selectedSpikeKey !== null && this._listEl) {
+      const prev = this._listEl.querySelector(`[data-spike-key="${this._selectedSpikeKey}"]`);
+      if (prev) prev.classList.remove('layers-panel__spike--selected');
+    }
+    if (obsId !== null && spikeIndex !== null) {
+      this._selectedSpikeKey = `${obsId}:${spikeIndex}`;
+      const el = this._listEl.querySelector(`[data-spike-key="${this._selectedSpikeKey}"]`);
+      if (el) {
+        el.classList.add('layers-panel__spike--selected');
+        el.scrollIntoView({ block: 'nearest' });
+      }
+    } else {
+      this._selectedSpikeKey = null;
+    }
+  }
+
   get selectedId() { return this._selectedId; }
+  get selectedSpikeKey() { return this._selectedSpikeKey; }
 
   dispose() {
     if (this._el) this._el.remove();

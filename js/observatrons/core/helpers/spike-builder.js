@@ -287,6 +287,7 @@ export class SpikeBuilder {
         transparent: true, opacity: 0.9,
       }));
       sideMesh.userData.facetSide = true;
+      sideMesh.userData.spikeIndex = i;
       group.add(sideMesh);
     }
 

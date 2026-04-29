@@ -40,6 +40,10 @@ export class Observatron {
     this._panY = 0;
     this._onPanChange = null;
 
+    // ── rebuild callback ──
+    this._onRebuild = null;
+    this._highlightedSpike = null;
+
     // ── scene ──
     this._sceneMgr = new SceneManager(containerEl);
     this._sceneMgr.onResize = () => this._labels.update(this._channelMgr, this._mesh, this._connectionStats);
@@ -95,6 +99,10 @@ export class Observatron {
 
   set onPanChange(fn) {
     this._onPanChange = fn;
+  }
+
+  set onRebuild(fn) {
+    this._onRebuild = fn;
   }
 
   setPan(x, y) {
@@ -166,7 +174,35 @@ export class Observatron {
   // ── expose internals needed by the app shell ──
 
   get spikeCount() { return this._mesh ? this._mesh.spikes.length : 0; }
+  get spikeData() { return this._mesh ? this._mesh.spikes : []; }
   get observatronAddress() { return this._channelMgr.observatronUrl; }
+
+  highlightSpike(index) {
+    this.clearSpikeHighlight();
+    if (!this._mesh) return;
+    this._mesh.group.traverse(o => {
+      if (o.isMesh && o.userData.facetSide && o.userData.spikeIndex === index) {
+        o.userData._origColor = o.material.color.clone();
+        o.userData._origEmissive = o.material.emissive.clone();
+        o.material.color.set(0x4a90ff);
+        o.material.emissive.set(0x1a3a80);
+      }
+    });
+    this._highlightedSpike = index;
+  }
+
+  clearSpikeHighlight() {
+    if (this._highlightedSpike == null || !this._mesh) return;
+    this._mesh.group.traverse(o => {
+      if (o.isMesh && o.userData.facetSide && o.userData.spikeIndex === this._highlightedSpike) {
+        if (o.userData._origColor) o.material.color.copy(o.userData._origColor);
+        if (o.userData._origEmissive) o.material.emissive.copy(o.userData._origEmissive);
+        delete o.userData._origColor;
+        delete o.userData._origEmissive;
+      }
+    });
+    this._highlightedSpike = null;
+  }
 
   get _bgCube()   { return this._sceneMgr.bgCube; }
   get _bgCorner() { return this._sceneMgr.bgCorner; }
@@ -272,7 +308,9 @@ export class Observatron {
     const built = this._buildMesh();
     this._sceneMgr.pivot.add(built.group);
     this._mesh = built;
+    this._highlightedSpike = null;
     this._labels.update(this._channelMgr, this._mesh, this._connectionStats);
+    if (this._onRebuild) this._onRebuild();
   }
 
   _buildMesh() {

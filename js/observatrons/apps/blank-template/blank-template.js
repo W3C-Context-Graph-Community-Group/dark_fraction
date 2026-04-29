@@ -24,7 +24,6 @@ import { ClaimsControl }     from './controls/claims/claims-control.js';
 import { LayersPanel }       from './controls/layers-panel/layers-panel.js';
 import { CompareClaims }     from '../../core/helpers/verification/CompareClaims.js';
 import { DecisionGate }      from '../../core/helpers/verification/DecisionGate.js';
-
 const scheme = new ColorScheme('default');
 const obs = new Observatron(document.getElementById('canvas-wrap'));
 obs.colorScheme = scheme;
@@ -32,11 +31,44 @@ obs.exec('seed', { seed: 0xC6A107 });
 
 /* ── Layers panel (left sidebar) ── */
 let selectedObsIndex = -1;
+let selectedSpikeIndex = null;
 
 function selectObservatron(index) {
   selectedObsIndex = index;
   networkMgr.highlightNode(index);
   layersPanel.selectItem(index >= 0 ? String(index) : null);
+  // clear spike selection when selecting an observatron
+  if (selectedSpikeIndex !== null) {
+    obs.clearSpikeHighlight();
+    layersPanel.selectSpike(null, null);
+    selectedSpikeIndex = null;
+  }
+}
+
+function selectSpike(obsId, spikeIndex) {
+  const key = `${obsId}:${spikeIndex}`;
+  const prevKey = selectedSpikeIndex !== null ? `${obsId}:${selectedSpikeIndex}` : null;
+  if (key === prevKey) {
+    // deselect
+    obs.clearSpikeHighlight();
+    layersPanel.selectSpike(null, null);
+    selectedSpikeIndex = null;
+  } else {
+    obs.clearSpikeHighlight();
+    obs.highlightSpike(spikeIndex);
+    layersPanel.selectSpike(obsId, spikeIndex);
+    selectedSpikeIndex = spikeIndex;
+  }
+}
+
+/** Build layer entries with spike children for the single-observatron case. */
+function buildSingleObsEntries() {
+  const spikes = obs.spikeData;
+  const spikeEntries = spikes.map((sp, i) => ({
+    index: i,
+    url: sp.col.url,
+  }));
+  return [{ id: '0', url: 'cgp:/s/0/o/0', spikes: spikeEntries }];
 }
 
 const layersPanel = new LayersPanel({
@@ -49,6 +81,9 @@ const layersPanel = new LayersPanel({
     const idx = parseInt(id, 10);
     selectObservatron(idx === selectedObsIndex ? -1 : idx);
   },
+  onSpikeClick: (obsId, spikeIndex) => {
+    selectSpike(obsId, spikeIndex);
+  },
 });
 // Load CSS and mount
 const lpCSS = layersPanel.cssURL;
@@ -59,7 +94,15 @@ if (!document.querySelector(`link[href="${lpCSS}"]`)) {
   document.head.appendChild(link);
 }
 document.body.appendChild(layersPanel.mount());
-layersPanel.setEntries([{ id: '0', url: 'cgp:/s/0/o/0' }]);
+layersPanel.setEntries(buildSingleObsEntries());
+
+// refresh layers panel when observatron rebuilds (filter changes, color scheme, etc.)
+obs.onRebuild = () => {
+  selectedSpikeIndex = null;
+  if (networkMgr.count <= 0) {
+    layersPanel.setEntries(buildSingleObsEntries());
+  }
+};
 
 const panel = new ControlPanel();
 
@@ -460,10 +503,10 @@ const networkCtrl = new NetworkControl({
           networkMgr.updateLabels();
         }
       );
-      // Update layers panel for N observatrons
+      // Update layers panel for N observatrons (no spike children in network mode for now)
       const entries = [];
       for (let i = 0; i < count; i++) {
-        entries.push({ id: String(i), url: `cgp:/s/0/o/${i}` });
+        entries.push({ id: String(i), url: `cgp:/s/0/o/${i}`, spikes: [] });
       }
       layersPanel.setEntries(entries);
     } else {
@@ -476,7 +519,7 @@ const networkCtrl = new NetworkControl({
       }
       obs.viewExtent = { worldW: 2.5, worldH: 2.2 };
       obs.fitCamera();
-      layersPanel.setEntries([{ id: '0', url: 'cgp:/s/0/o/0' }]);
+      layersPanel.setEntries(buildSingleObsEntries());
     }
     // Update fiber bundle mode
     fiberCtrl.setMode(count, (nodeId) => {
