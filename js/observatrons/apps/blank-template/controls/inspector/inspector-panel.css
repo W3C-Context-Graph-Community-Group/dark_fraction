@@ -95,7 +95,7 @@
   color: rgba(255, 255, 255, 0.25);
 }
 
-/* ── Detail content ── */
+/* ── Spike URL header ── */
 .inspector-panel__field-label {
   font-size: 10px;
   font-weight: 600;
@@ -106,8 +106,117 @@
 }
 
 .inspector-panel__field-value {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.8);
-  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
   word-break: break-all;
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+/* ── Facet section ── */
+.inspector-panel__facet {
+  margin-bottom: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.inspector-panel__facet-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.inspector-panel__facet-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.inspector-panel__facet-dot--data      { background: #6ec6ff; }
+.inspector-panel__facet-dot--meaning   { background: #a78bfa; }
+.inspector-panel__facet-dot--structure { background: #34d399; }
+.inspector-panel__facet-dot--context   { background: #fbbf24; }
+
+.inspector-panel__facet-dot--empty {
+  opacity: 0.25;
+}
+
+.inspector-panel__facet-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.75);
+  font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+}
+
+.inspector-panel__facet-badge {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.25);
+  margin-left: auto;
+}
+
+/* ── Facet table (columnar key→values) ── */
+.inspector-panel__facet-table {
+  padding: 4px 0;
+}
+
+.inspector-panel__facet-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 12px;
+}
+
+.inspector-panel__facet-row:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.inspector-panel__facet-col {
+  flex-shrink: 0;
+  width: 100px;
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 0.3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inspector-panel__facet-vals {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+}
+
+.inspector-panel__facet-chip {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+  padding: 1px 6px;
+  font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+  word-break: break-all;
+  line-height: 1.4;
+}
+
+/* ── JSON view ── */
+.inspector-panel__json {
+  font-size: 11px;
+  font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin: 0;
+  tab-size: 2;
 }

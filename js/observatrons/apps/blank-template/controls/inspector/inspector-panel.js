@@ -1,5 +1,6 @@
 /**
  * Right-column inspector panel with resizable width and tabbed views.
+ * Shows the four facets of a selected spike in DOM or JSON view.
  */
 export class InspectorPanel {
   /**
@@ -14,8 +15,9 @@ export class InspectorPanel {
     this._minWidth = minWidth;
     this._maxWidth = maxWidth;
     this._onResize = onResize || null;
-    this._activeTab = 'inspector';
-    this._selectedId = null;
+    this._activeTab = 'dom';
+    this._spikeUrl = null;
+    this._facets = null;
 
     this.cssURL = new URL('inspector-panel.css', import.meta.url).href;
   }
@@ -36,9 +38,9 @@ export class InspectorPanel {
     const tabs = document.createElement('div');
     tabs.className = 'inspector-panel__tabs';
 
-    this._inspectorTab = this._createTab('Inspector', 'inspector');
+    this._domTab = this._createTab('DOM', 'dom');
     this._jsonTab = this._createTab('JSON', 'json');
-    tabs.appendChild(this._inspectorTab);
+    tabs.appendChild(this._domTab);
     tabs.appendChild(this._jsonTab);
     el.appendChild(tabs);
 
@@ -47,21 +49,27 @@ export class InspectorPanel {
     this._body.className = 'inspector-panel__body';
     el.appendChild(this._body);
 
-    this._setTab('inspector');
+    this._setTab('dom');
     this._renderBody();
     return el;
   }
 
   get width() { return this._width; }
 
-  /** Show an observatron by ID in the inspector view. */
-  showObservatron(id) {
-    this._selectedId = id;
+  /**
+   * Show a spike's four facets.
+   * @param {string} url — the spike's CGP URL
+   * @param {object} facets — { '/data': {...}, '/meaning': {...}, '/structure': {...}, '/context': {...} }
+   */
+  showSpike(url, facets) {
+    this._spikeUrl = url;
+    this._facets = facets;
     this._renderBody();
   }
 
   clear() {
-    this._selectedId = null;
+    this._spikeUrl = null;
+    this._facets = null;
     this._renderBody();
   }
 
@@ -75,7 +83,7 @@ export class InspectorPanel {
 
   _setTab(key) {
     this._activeTab = key;
-    this._inspectorTab.classList.toggle('inspector-panel__tab--active', key === 'inspector');
+    this._domTab.classList.toggle('inspector-panel__tab--active', key === 'dom');
     this._jsonTab.classList.toggle('inspector-panel__tab--active', key === 'json');
     this._renderBody();
   }
@@ -84,29 +92,115 @@ export class InspectorPanel {
     if (!this._body) return;
     this._body.innerHTML = '';
 
-    if (this._selectedId == null) {
+    if (!this._spikeUrl || !this._facets) {
       const empty = document.createElement('div');
       empty.className = 'inspector-panel__empty';
-      empty.textContent = 'Click an observatron to inspect';
+      empty.textContent = 'Select a spike to inspect';
       this._body.appendChild(empty);
       return;
     }
 
-    if (this._activeTab === 'inspector') {
-      const lbl = document.createElement('div');
-      lbl.className = 'inspector-panel__field-label';
-      lbl.textContent = 'Observatron ID';
-      const val = document.createElement('div');
-      val.className = 'inspector-panel__field-value';
-      val.textContent = this._selectedId;
-      this._body.appendChild(lbl);
-      this._body.appendChild(val);
+    if (this._activeTab === 'dom') {
+      this._renderDom();
     } else {
-      const empty = document.createElement('div');
-      empty.className = 'inspector-panel__empty';
-      empty.textContent = 'JSON view (coming soon)';
-      this._body.appendChild(empty);
+      this._renderJson();
     }
+  }
+
+  _renderDom() {
+    // spike URL header
+    const urlLabel = document.createElement('div');
+    urlLabel.className = 'inspector-panel__field-label';
+    urlLabel.textContent = 'Spike';
+    this._body.appendChild(urlLabel);
+
+    const urlValue = document.createElement('div');
+    urlValue.className = 'inspector-panel__field-value';
+    urlValue.textContent = this._spikeUrl;
+    this._body.appendChild(urlValue);
+
+    // four facets
+    const facetOrder = ['/data', '/meaning', '/structure', '/context'];
+    for (const facetName of facetOrder) {
+      const facetData = this._facets[facetName];
+      if (!facetData) continue;
+
+      const section = document.createElement('div');
+      section.className = 'inspector-panel__facet';
+
+      const header = document.createElement('div');
+      header.className = 'inspector-panel__facet-header';
+
+      const dot = document.createElement('span');
+      dot.className = 'inspector-panel__facet-dot';
+      dot.classList.add(`inspector-panel__facet-dot--${facetName.slice(1)}`);
+      const isEmpty = this._isFacetEmpty(facetData);
+      if (isEmpty) dot.classList.add('inspector-panel__facet-dot--empty');
+      header.appendChild(dot);
+
+      const name = document.createElement('span');
+      name.className = 'inspector-panel__facet-name';
+      name.textContent = facetName;
+      header.appendChild(name);
+
+      if (isEmpty) {
+        const badge = document.createElement('span');
+        badge.className = 'inspector-panel__facet-badge';
+        badge.textContent = 'empty';
+        header.appendChild(badge);
+      }
+
+      section.appendChild(header);
+
+      if (!isEmpty) {
+        const table = document.createElement('div');
+        table.className = 'inspector-panel__facet-table';
+
+        for (const [col, values] of Object.entries(facetData)) {
+          const row = document.createElement('div');
+          row.className = 'inspector-panel__facet-row';
+
+          const colName = document.createElement('div');
+          colName.className = 'inspector-panel__facet-col';
+          colName.textContent = col;
+          row.appendChild(colName);
+
+          const colVals = document.createElement('div');
+          colVals.className = 'inspector-panel__facet-vals';
+          if (Array.isArray(values)) {
+            for (const v of values) {
+              const chip = document.createElement('span');
+              chip.className = 'inspector-panel__facet-chip';
+              chip.textContent = v;
+              colVals.appendChild(chip);
+            }
+          } else {
+            colVals.textContent = String(values);
+          }
+          row.appendChild(colVals);
+
+          table.appendChild(row);
+        }
+        section.appendChild(table);
+      }
+
+      this._body.appendChild(section);
+    }
+  }
+
+  _renderJson() {
+    const pre = document.createElement('pre');
+    pre.className = 'inspector-panel__json';
+    pre.textContent = JSON.stringify(this._facets, null, 2);
+    this._body.appendChild(pre);
+  }
+
+  _isFacetEmpty(facetData) {
+    for (const v of Object.values(facetData)) {
+      if (Array.isArray(v) && v.length > 0) return false;
+      if (!Array.isArray(v) && v != null && v !== '') return false;
+    }
+    return true;
   }
 
   _initResize(handle) {

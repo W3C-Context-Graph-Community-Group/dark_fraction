@@ -24,10 +24,28 @@ import { ClaimsControl }     from './controls/claims/claims-control.js';
 import { LayersPanel }       from './controls/layers-panel/layers-panel.js';
 import { CompareClaims }     from '../../core/helpers/verification/CompareClaims.js';
 import { DecisionGate }      from '../../core/helpers/verification/DecisionGate.js';
+import { InspectorPanel }   from './controls/inspector/inspector-panel.js';
 const scheme = new ColorScheme('default');
 const obs = new Observatron(document.getElementById('canvas-wrap'));
 obs.colorScheme = scheme;
 obs.exec('seed', { seed: 0xC6A107 });
+
+/* ── Inspector panel (right sidebar) ── */
+const inspectorPanel = new InspectorPanel({
+  onResize: () => {
+    obs._sceneMgr.triggerResize();
+    fitGridCamera();
+    networkMgr.updateLabels();
+  },
+});
+const ipCSS = inspectorPanel.cssURL;
+if (!document.querySelector(`link[href="${ipCSS}"]`)) {
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = ipCSS;
+  document.head.appendChild(link);
+}
+document.body.appendChild(inspectorPanel.mount());
 
 /* ── Layers panel (left sidebar) ── */
 let selectedObsIndex = -1;
@@ -42,6 +60,7 @@ function selectObservatron(index) {
     obs.clearSpikeHighlight();
     layersPanel.selectSpike(null, null);
     selectedSpikeIndex = null;
+    inspectorPanel.clear();
   }
 }
 
@@ -53,11 +72,18 @@ function selectSpike(obsId, spikeIndex) {
     obs.clearSpikeHighlight();
     layersPanel.selectSpike(null, null);
     selectedSpikeIndex = null;
+    inspectorPanel.clear();
   } else {
     obs.clearSpikeHighlight();
     obs.highlightSpike(spikeIndex);
     layersPanel.selectSpike(obsId, spikeIndex);
     selectedSpikeIndex = spikeIndex;
+    // show four facets in inspector
+    const spikes = obs.spikeData;
+    if (spikes[spikeIndex]) {
+      const sp = spikes[spikeIndex];
+      inspectorPanel.showSpike(sp.col.url, sp.col.facets);
+    }
   }
 }
 
@@ -99,6 +125,7 @@ layersPanel.setEntries(buildSingleObsEntries());
 // refresh layers panel when observatron rebuilds (filter changes, color scheme, etc.)
 obs.onRebuild = () => {
   selectedSpikeIndex = null;
+  inspectorPanel.clear();
   if (networkMgr.count <= 0) {
     layersPanel.setEntries(buildSingleObsEntries());
   }

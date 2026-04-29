@@ -1,0 +1,22 @@
+{
+  "url": "cgp:/core/html/forms/drag-and-drop",
+  "facets": {
+    "/data": {
+      "anchor": ["cgp:/core/html/forms/drag-and-drop"]
+    },
+    "/meaning": {
+      "symbol": ["cgp:/core/html/forms/drag-and-drop"],
+      "meaning": ["Wraps a drop-target element and observes file-drop interactions. On each drop it mints events, anchors, and paths into an observatron and dispatches cgp-state-change."]
+    },
+    "/structure": {
+      "constraint-key": ["tag", "display", "required-attributes"],
+      "constraint-value": ["cgp-html-forms-drag-and-drop", "contents", "cgp-target, cgp-system-id, cgp-observatron-id"]
+    },
+    "/context": {
+      "timestamp": [],
+      "channel": [],
+      "key": [],
+      "value": []
+    }
+  }
+}

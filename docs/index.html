@@ -86,7 +86,6 @@
     border: 1px solid #e0e0e0;
     border-radius: 12px;
     padding: 40px 48px;
-    max-width: 860px;
     box-shadow: 0 1px 4px rgba(0,0,0,0.04);
   }
 
@@ -233,6 +232,32 @@
     transition: opacity 0.2s;
   }
   .docs-content__card.loaded { opacity: 1; }
+
+  /* ── Export toolbar ── */
+  .docs-toolbar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .docs-export-btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 16px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    background: #fff;
+    color: #555;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+  }
+
+  .docs-export-btn:hover {
+    border-color: #7c3aed;
+    color: #7c3aed;
+    background: #faf8ff;
+  }
 </style>
 </head>
 <body>
@@ -245,6 +270,12 @@
   </aside>
 
   <main class="docs-content">
+    <div class="docs-toolbar">
+      <button class="docs-export-btn" data-format="pdf">PDF</button>
+      <button class="docs-export-btn" data-format="txt">TXT</button>
+      <button class="docs-export-btn" data-format="md">MD</button>
+      <button class="docs-export-btn" data-format="docx">DOCX</button>
+    </div>
     <div class="docs-content__card" id="docs-card">
       <p class="docs-loading">Loading...</p>
     </div>
@@ -252,6 +283,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html-docx-js/dist/html-docx.js"></script>
 <script>
 (function () {
   var listEl = document.getElementById('docs-list');
@@ -315,6 +348,16 @@
   window.addEventListener('hashchange', function () {
     var hash = window.location.hash.slice(1);
     if (hash && hash !== activeFile) loadDoc(hash);
+  });
+})();
+</script>
+
+<script src="doc-exporter.js"></script>
+<script>
+(function () {
+  var exporter = new DocExporter(document.getElementById('docs-card'));
+  document.querySelectorAll('.docs-export-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () { exporter.export(btn.dataset.format); });
   });
 })();
 </script>

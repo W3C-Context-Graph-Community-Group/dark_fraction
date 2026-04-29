@@ -1,5 +1,7 @@
 [
   { "file": "getting_started.md", "title": "Getting Started" },
   { "file": "event_bus.md",       "title": "Event Bus" },
-  { "file": "sidebar.md",         "title": "Sidebar" }
+  { "file": "sidebar.md",         "title": "Sidebar" },
+  { "file": "URLs.md",            "title": "URLs" },
+  { "file": "HTML_cpg_tags.md",   "title": "HTML CPG Tags" }
 ]

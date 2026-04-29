@@ -10,15 +10,17 @@
   --cp-font:       -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
-/* --- Fixed top-right container --- */
+/* --- Fixed top-center container (centered between layers + inspector panels) --- */
 .control-panel {
   position: fixed;
   top: calc(env(safe-area-inset-top) + 12px);
-  right: 14px;
+  left: var(--lp-width, 350px);
+  right: var(--inspector-width, 320px);
   z-index: 50;
   display: flex;
   flex-direction: row;
   align-items: flex-start;
+  justify-content: center;
   gap: 6px;
   pointer-events: none;
 }

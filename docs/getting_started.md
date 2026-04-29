@@ -1785,3 +1785,288 @@ questions regulated industries actually ask:
   verified)
 - *"Is what we see holding together?"* (FMR — is the trajectory stable 
   as it accumulates)
+
+
+---
+# Spec Additions for the Getting Started Guide
+
+Five subsections to add. Each is standalone — paste each one wherever it fits in the existing document. Recommended order is the order below: naming convention first, then attributes, then the homomorphism that explains why both work the way they do, then auto-assignment, then the flat-structure rule that constrains how elements compose.
+
+---
+
+## Component Naming Convention
+
+CGP components follow a four-segment hyphenated naming pattern that
+parallels the URL structure of the protocol itself:
+
+```
+<cgp-{syntax}-{library}-{component}>
+```
+
+Each segment carries specific meaning:
+
+| Segment | Purpose | Examples |
+|---|---|---|
+| `cgp` | **Namespace.** Declares the element participates in the Context Graph Protocol — the same role `cgp:/` plays in URLs. | (always `cgp`) |
+| `{syntax}` | **Syntax kind.** What the element wraps. CGP is syntax-agnostic; this segment identifies which syntax this component instruments. | `html`, `markdown`, `json`, `sql` |
+| `{library}` | **Component library.** Which library the component comes from. Lets multiple libraries coexist without name collision. | `forms`, `tables`, `flows`, `prompts` |
+| `{component}` | **Component identifier.** The leaf name of the specific component. | `drag-and-drop`, `text-input`, `query-slot` |
+
+### Examples
+
+```html
+<cgp-html-forms-drag-and-drop ...>
+<cgp-html-tables-row-observer ...>
+<cgp-markdown-flows-section-anchor ...>
+<cgp-sql-prompts-query-slot ...>
+```
+
+### Why this pattern
+
+The naming convention is structural, not cosmetic. It serves three roles:
+
+1. **Self-describing.** A developer reading `<cgp-html-forms-drag-and-drop>`
+   knows immediately that the element is a CGP component, in the
+   HTML-forms library, that does drag-and-drop — without needing
+   documentation.
+2. **Namespacing.** Multiple libraries can ship overlapping component
+   names (`drag-and-drop` could exist in `forms`, `tables`, and `flows`)
+   without collision.
+3. **Globally unique component types.** Component names must not
+   collide across implementations. A Python observatron and a JavaScript
+   observatron cannot share a component name unless they declare the
+   same protocol-level entity. URL identity depends on this.
+
+### Aliases (deferred to v2)
+
+A library may offer short aliases for its primary components — for
+example, `<cgp-drag-and-drop>` as a shortcut for
+`<cgp-html-forms-drag-and-drop>`. Aliases are not part of the v1 MVP
+and are deferred until the primary library stabilizes.
+
+---
+
+## Attribute Conventions
+
+Custom attributes on CGP elements use the `cgp-` prefix:
+
+```html
+<cgp-html-forms-drag-and-drop
+    cgp-target="#my-elem"
+    cgp-filetype="csv"
+    cgp-channel="state-change">
+  <div id="my-elem" />
+</cgp-html-forms-drag-and-drop>
+```
+
+### Why prefix attributes
+
+Bare attribute names like `target`, `filetype`, or `channel` collide
+with HTML standard semantics or other library conventions. `target` in
+particular is reserved by `<a>`, `<form>`, `<base>`, and `<area>` for
+browsing contexts.
+
+The `cgp-` prefix on attributes does the same namespacing work the
+prefix does on element names: it signals that the attribute is part of
+the CGP protocol contract, not an HTML standard or another library's
+convention. The redundancy with the element's own `cgp-` prefix is
+deliberate — when an element has multiple custom attributes, the
+prefix on each one is what tells a reader at a glance which attributes
+are protocol-defined.
+
+### Reserved attribute names
+
+The following attributes are part of the CGP attribute contract.
+Components may add their own `cgp-`-prefixed attributes, but should not
+shadow these:
+
+| Attribute | Purpose |
+|---|---|
+| `cgp-target` | CSS selector identifying the inner element to instrument. |
+| `cgp-filetype` | Hint for the syntax of expected payloads (`csv`, `json`, etc.). |
+| `cgp-channel` | Channel name from `cgp:/root/events/` — overrides default. |
+| `cgp-system-id` | System identifier (see Auto-Assignment below). |
+| `cgp-observatron-id` | Observatron identifier (see Auto-Assignment below). |
+
+### Atomic vs. structured configuration
+
+Configuration that is naturally atomic — IDs, selectors, single string
+values — uses individual `cgp-`-prefixed attributes.
+
+Configuration that is naturally structured — Intent Maps, schema
+fragments, nested rule sets — is passed as a JSON-encoded string in a
+single `cgp-`-prefixed attribute (for example, `cgp-intent-map='{...}'`).
+
+The principle: individual attributes for things HTML attributes are
+already shaped to carry; JSON-in-an-attribute reserved for things that
+are inherently nested. This matches how standard HTML handles the same
+distinction.
+
+---
+
+## The Element-URL Homomorphism
+
+A CGP element on the page and a CGP URL in the protocol describe the
+same address from two directions. The element name carries the
+**type path** — what kind of thing this is. The element's attributes
+carry the **instance path** — which specific one. Together they map
+deterministically to a unique URL. No external registry, no lookup
+table.
+
+| | Element side (HTML) | URL side (protocol) |
+|---|---|---|
+| **Type path** (what kind of thing) | Element name segments: `cgp-{syntax}-{library}-{component}` | URL kind prefixes: `cgp:/s/.../o/.../c/...` |
+| **Instance path** (which specific one) | Attributes: `cgp-system-id`, `cgp-observatron-id`, channel name from leaf | URL instance values: `cgp:/s/0/o/1/c/drag-and-drop` |
+| **Example** | `<cgp-html-forms-drag-and-drop cgp-system-id="0" cgp-observatron-id="1">` | `cgp:/s/0/o/1/c/drag-and-drop` |
+| **Composes** | Hierarchically, left to right, narrowing | Hierarchically, left to right, narrowing |
+| **Globally unique** | Yes — element type names must not collide across implementations | Yes — URLs are the protocol's identity |
+
+### The runtime function
+
+Given an element on the page, the runtime computes its URL by
+combining the element's type path with its instance attributes. When
+instance attributes are absent, the runtime auto-assigns them
+deterministically from page context. The function is total (every
+element resolves to a URL) and injective (every element resolves to a
+different URL).
+
+### Why the two sides look different
+
+URLs and HTML serve different audiences. URLs are read in claim logs,
+audit trails, and engineer-to-engineer messages — they need to be
+compact and self-documenting on a single line, which is why `s/o/c`
+prefixes appear inline. HTML elements are read in source files and
+browser dev tools — they need to match Web Components conventions,
+which is why the element name carries the type and attributes carry
+instances. Same compositional structure, expressed in the form native
+to each medium.
+
+---
+
+## Auto-Assignment of System and Observatron IDs
+
+System and observatron IDs are user-supplied **when explicitly set**.
+When not provided, the runtime assigns them automatically.
+
+### Default behavior
+
+```html
+<!-- No IDs specified — runtime auto-assigns. -->
+<cgp-html-forms-drag-and-drop cgp-target="#my-elem">
+  <div id="my-elem" />
+</cgp-html-forms-drag-and-drop>
+```
+
+When `cgp-system-id` and `cgp-observatron-id` are absent:
+
+- **System ID** — the runtime assigns `0` if no other CGP element on
+  the page has claimed a system ID. If another element has claimed a
+  system ID, the new element joins that system rather than minting a
+  second one.
+- **Observatron ID** — the runtime assigns the next available integer
+  within the system. The first observatron on a page is `1`, the
+  second is `2`, and so on.
+
+### Explicit assignment
+
+For pages with multiple systems, or for cases where stable IDs are
+required (testing, deterministic URL generation, integration with
+backend systems), specify both attributes:
+
+```html
+<cgp-html-forms-drag-and-drop
+    cgp-system-id="0"
+    cgp-observatron-id="1"
+    cgp-target="#my-elem">
+  <div id="my-elem" />
+</cgp-html-forms-drag-and-drop>
+```
+
+### Why auto-assignment
+
+Auto-assignment is not a fallback or a convenience — it is the
+runtime completing the instance path of the element-URL homomorphism
+the same way it completes URL counters elsewhere in the protocol
+(event-n, anchor-n, path-n). Every element's URL is fully determined
+by the page's structure plus the runtime's deterministic assignment
+rules. The default behavior — most users drop one component on one
+page — should not require boilerplate, and the homomorphism is
+preserved either way.
+
+### Resulting URLs
+
+The URL structure is identical regardless of whether IDs were
+auto-assigned or explicit. An auto-assigned page with one observatron
+mints:
+
+```
+cgp:/s/0
+cgp:/s/0/o/1
+```
+
+A second auto-assigned observatron on the same page mints:
+
+```
+cgp:/s/0/o/2
+```
+
+The auto-assignment is internal bookkeeping; the protocol's URL
+contract is unchanged.
+
+---
+
+## Flat Element Structure
+
+CGP elements are **flat** at the HTML level. A CGP element wraps
+non-CGP content — a `<div>`, a `<form>`, a `<table>`, etc. — and
+instruments the boundary. CGP elements are not nested inside other
+CGP elements.
+
+### Nesting lives in the URL, not in the DOM
+
+The URL `cgp:/s/0/o/1/c/state-change/0/a/0/p/0` is itself a nested
+path — system contains observatron contains channel contains event
+contains anchor contains path. That hierarchy is generated by the
+runtime from events crossing the boundary, not by DOM nesting of
+multiple CGP tags.
+
+An observatron is the atom of the protocol. Everything below the
+observatron — channels, events, anchors, paths — is addressable
+through the URL hierarchy that the runtime builds inside that single
+observatron's scope. There is no concept of an observatron containing
+another observatron.
+
+### Implications for component authors
+
+- A CGP element wraps non-CGP content. The wrapped content is the
+  thing being observed; the CGP element is the observation surface.
+- Components are not composed by nesting. Richer behavior is built
+  inside a single component, which mints whatever URL structure it
+  needs internally.
+- Cross-observatron relationships are expressed through the protocol —
+  emitting claims, comparing URLs, walking fiber bundles — not through
+  HTML composition. Two observatrons that need to relate do so by
+  participating in the same channel definition, not by being nested
+  in each other.
+
+This is a deliberate constraint. It keeps the geometry uniform:
+nesting happens at exactly one layer (the URL hierarchy inside an
+observatron), and it happens the same way every time. Same shape at
+every scale.
+
+---
+
+## Summary
+
+For implementers, the rules above resolve to four invariants:
+
+1. **Every CGP element on a page resolves to a unique URL.**
+2. **Element names carry the type path; attributes carry the instance path.** Together they construct the URL deterministically.
+3. **Auto-assignment completes the instance path** when attributes are absent, using the page's runtime context.
+4. **CGP elements are flat.** Nesting lives in the URL hierarchy, not the DOM. CGP wraps non-CGP; CGP does not contain CGP.
+
+These four invariants are what make "same shape at every scale"
+operational rather than aspirational.
+
+
+
