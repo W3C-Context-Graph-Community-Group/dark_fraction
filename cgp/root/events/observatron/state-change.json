@@ -1,9 +1,7 @@
 {
   "url": "cgp:/root/events/observatron/state-change",
   "facets": {
-    "/data": {
-      "anchor": ["cgp:/root/events/observatron/state-change"]
-    },
+    "/data": {},
     "/meaning": {
       "symbol": ["cgp:/root/events/observatron/state-change"],
       "meaning": ["Fired by an observatron whenever its state changes. Host bindings dispatch this as the DOM event 'cgp-state-change'. Payload includes the full URL-keyed facet store at the moment of emission."]
@@ -27,8 +25,10 @@
       ]
     },
     "/context": {
-      "timestamp": [],
+      "anchor": [],
+      "source": [],
       "channel": [],
+      "timestamp": [],
       "key": [],
       "value": []
     }

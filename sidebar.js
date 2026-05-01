@@ -67,10 +67,12 @@
     { id: 'home',         label: 'Home',         href: '../' },
     { id: '_hr' },
     { id: 'calculator',   label: 'Calculator',   href: '../calculator/' },
+    { id: 'calculator-live', label: 'Dark Fraction (live)', href: '../calculator/active/' },
     { id: 'observatrons', label: 'Observatrons', href: '../observatrons/' },
     { id: 'docs',         label: 'Docs',         href: '../docs/' },
     { id: 'ui-bindings',  label: 'UI Bindings',  href: '../ui-bindings/' },
-    { id: 'demo',         label: 'Demo',         href: '../demo/' }
+    { id: 'demo',         label: 'Demo',         href: '../demo/' },
+    { id: 'liquid_hypergraph', label: 'Liquid Hypergraph', href: '../liquid_hypergraph/' }
   ];
 
   var linksHtml = links.map(function (link) {

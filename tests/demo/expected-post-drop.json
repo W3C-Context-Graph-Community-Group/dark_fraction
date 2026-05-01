@@ -1,0 +1,309 @@
+{
+  "cgp:/s/0": {
+    "/data": {},
+    "/meaning": {
+      "symbol": [
+        "cgp:/s/0"
+      ],
+      "meaning": [
+        "user system"
+      ]
+    },
+    "/structure": {
+      "constraint-key": [
+        "kind"
+      ],
+      "constraint-value": [
+        "system"
+      ]
+    },
+    "/context": {
+      "anchor": [
+        "cgp:/s/0"
+      ],
+      "source": [
+        "cgp:/s/0/o/0"
+      ],
+      "channel": [
+        "cgp:/root/events/observatron/system-instantiated"
+      ],
+      "timestamp": [
+        "2026-05-01T03:58:43.650Z"
+      ],
+      "key": [
+        "systemId"
+      ],
+      "value": [
+        "0"
+      ]
+    }
+  },
+  "cgp:/s/0/o/0": {
+    "/data": {},
+    "/meaning": {
+      "symbol": [
+        "cgp:/s/0/o/0"
+      ],
+      "meaning": [
+        "observatron"
+      ]
+    },
+    "/structure": {
+      "constraint-key": [
+        "kind"
+      ],
+      "constraint-value": [
+        "observatron"
+      ]
+    },
+    "/context": {
+      "anchor": [
+        "cgp:/s/0/o/0"
+      ],
+      "source": [
+        "cgp:/s/0/o/0"
+      ],
+      "channel": [
+        "cgp:/root/events/observatron/observatron-bound"
+      ],
+      "timestamp": [
+        "2026-05-01T03:58:43.650Z"
+      ],
+      "key": [
+        "observatronId"
+      ],
+      "value": [
+        "0"
+      ]
+    }
+  },
+  "cgp:/s/0/o/0/c/state-change/0": {
+    "/data": {},
+    "/meaning": {
+      "symbol": [
+        "cgp:/s/0/o/0/c/state-change/0"
+      ],
+      "meaning": [
+        "state-change"
+      ]
+    },
+    "/structure": {
+      "constraint-key": [
+        "kind"
+      ],
+      "constraint-value": [
+        "event"
+      ]
+    },
+    "/context": {
+      "anchor": [
+        "cgp:/s/0/o/0/c/state-change/0"
+      ],
+      "source": [
+        "cgp:/s/0/o/0"
+      ],
+      "channel": [
+        "cgp:/root/events/observatron/event-fired"
+      ],
+      "timestamp": [
+        "2026-05-01T04:09:52.067Z"
+      ],
+      "key": [
+        "trigger"
+      ],
+      "value": [
+        "drop"
+      ]
+    }
+  },
+  "cgp:/s/0/o/0/c/state-change/0/a/0": {
+    "/data": {
+      "value": [
+        "Date,Oil Price,Location\n2026-01-15,72.45,Houston\n2026-01-16,73.12,Rotterdam\n2026-01-17,71.89,Singapore\n"
+      ]
+    },
+    "/meaning": {
+      "symbol": [
+        "cgp:/s/0/o/0/c/state-change/0/a/0"
+      ],
+      "meaning": [
+        "sales.csv"
+      ]
+    },
+    "/structure": {
+      "constraint-key": [
+        "kind",
+        "format",
+        "bytes",
+        "rows"
+      ],
+      "constraint-value": [
+        "anchor",
+        "csv",
+        103,
+        3
+      ]
+    },
+    "/context": {
+      "anchor": [
+        "cgp:/s/0/o/0/c/state-change/0/a/0"
+      ],
+      "source": [
+        "cgp:/s/0/o/0"
+      ],
+      "channel": [
+        "cgp:/root/events/observatron/anchor-minted"
+      ],
+      "timestamp": [
+        "2026-05-01T04:09:52.070Z"
+      ],
+      "key": [
+        "filename"
+      ],
+      "value": [
+        "sales.csv"
+      ]
+    }
+  },
+  "cgp:/s/0/o/0/c/state-change/0/a/0/p/0": {
+    "/data": {
+      "value": [
+        "2026-01-15",
+        "2026-01-16",
+        "2026-01-17"
+      ]
+    },
+    "/meaning": {
+      "symbol": [
+        "cgp:/s/0/o/0/c/state-change/0/a/0/p/0"
+      ],
+      "meaning": [
+        "Date"
+      ]
+    },
+    "/structure": {
+      "constraint-key": [
+        "type",
+        "columnIndex"
+      ],
+      "constraint-value": [
+        "string",
+        0
+      ]
+    },
+    "/context": {
+      "anchor": [
+        "cgp:/s/0/o/0/c/state-change/0/a/0/p/0"
+      ],
+      "source": [
+        "cgp:/s/0/o/0"
+      ],
+      "channel": [
+        "cgp:/root/events/observatron/path-minted"
+      ],
+      "timestamp": [
+        "2026-05-01T04:09:52.070Z"
+      ],
+      "key": [
+        "header"
+      ],
+      "value": [
+        "Date"
+      ]
+    }
+  },
+  "cgp:/s/0/o/0/c/state-change/0/a/0/p/1": {
+    "/data": {
+      "value": [
+        "72.45",
+        "73.12",
+        "71.89"
+      ]
+    },
+    "/meaning": {
+      "symbol": [
+        "cgp:/s/0/o/0/c/state-change/0/a/0/p/1"
+      ],
+      "meaning": [
+        "Oil Price"
+      ]
+    },
+    "/structure": {
+      "constraint-key": [
+        "type",
+        "columnIndex"
+      ],
+      "constraint-value": [
+        "string",
+        1
+      ]
+    },
+    "/context": {
+      "anchor": [
+        "cgp:/s/0/o/0/c/state-change/0/a/0/p/1"
+      ],
+      "source": [
+        "cgp:/s/0/o/0"
+      ],
+      "channel": [
+        "cgp:/root/events/observatron/path-minted"
+      ],
+      "timestamp": [
+        "2026-05-01T04:09:52.070Z"
+      ],
+      "key": [
+        "header"
+      ],
+      "value": [
+        "Oil Price"
+      ]
+    }
+  },
+  "cgp:/s/0/o/0/c/state-change/0/a/0/p/2": {
+    "/data": {
+      "value": [
+        "Houston",
+        "Rotterdam",
+        "Singapore"
+      ]
+    },
+    "/meaning": {
+      "symbol": [
+        "cgp:/s/0/o/0/c/state-change/0/a/0/p/2"
+      ],
+      "meaning": [
+        "Location"
+      ]
+    },
+    "/structure": {
+      "constraint-key": [
+        "type",
+        "columnIndex"
+      ],
+      "constraint-value": [
+        "string",
+        2
+      ]
+    },
+    "/context": {
+      "anchor": [
+        "cgp:/s/0/o/0/c/state-change/0/a/0/p/2"
+      ],
+      "source": [
+        "cgp:/s/0/o/0"
+      ],
+      "channel": [
+        "cgp:/root/events/observatron/path-minted"
+      ],
+      "timestamp": [
+        "2026-05-01T04:09:52.070Z"
+      ],
+      "key": [
+        "header"
+      ],
+      "value": [
+        "Location"
+      ]
+    }
+  }
+}

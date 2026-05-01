@@ -2,7 +2,9 @@
   "url": "cgp:/core/html/forms/drag-and-drop",
   "facets": {
     "/data": {
-      "anchor": ["cgp:/core/html/forms/drag-and-drop"]
+      "value": [
+        "<cgp-html-forms-drag-and-drop cgp-target=\".drop-zone\" cgp-system-id=\"0\" cgp-observatron-id=\"0\">\n  <div class=\"drop-zone\">Drop a CSV here</div>\n</cgp-html-forms-drag-and-drop>"
+      ]
     },
     "/meaning": {
       "symbol": ["cgp:/core/html/forms/drag-and-drop"],
@@ -13,8 +15,10 @@
       "constraint-value": ["cgp-html-forms-drag-and-drop", "contents", "cgp-target, cgp-system-id, cgp-observatron-id"]
     },
     "/context": {
-      "timestamp": [],
+      "anchor": [],
+      "source": [],
       "channel": [],
+      "timestamp": [],
       "key": [],
       "value": []
     }

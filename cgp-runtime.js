@@ -1,21 +1,26 @@
 // cgp-runtime.js — UrlManager + createObservatron factory
 // Facet storage is COLUMNAR everywhere: struct of arrays, not array of structs.
 
+import { validateSegment } from './js/cgp/CgpUrlMap.js';
+
 export class UrlManager {
   constructor() {
     this.counters = new Map(); // keyed by parent URL → next integer
   }
 
   mintSystem(id) {
+    validateSegment(String(id));
     return `cgp:/s/${id}`;
   }
 
   mintObservatron(systemUrl, id) {
+    validateSegment(String(id));
     return `${systemUrl}/o/${id}`;
   }
 
   // Auto-incremented per (observatron, channel) pair
   mintEvent(observatronUrl, channelName) {
+    validateSegment(channelName);
     const key = `${observatronUrl}/c/${channelName}`;
     const n = this.counters.get(key) ?? 0;
     this.counters.set(key, n + 1);
@@ -39,92 +44,94 @@ export class UrlManager {
 
 function emptyFacets() {
   return {
-    "/data":      { "anchor": [] },
+    "/data":      {},
     "/meaning":   { "symbol": [], "meaning": [] },
     "/structure": { "constraint-key": [], "constraint-value": [] },
-    "/context":   { "timestamp": [], "channel": [], "key": [], "value": [] }
+    "/context":   { "anchor": [], "source": [], "channel": [], "timestamp": [], "key": [], "value": [] }
   };
 }
 
-export function createObservatron({ systemId, observatronId, urlManager }) {
+export function createObservatron({ systemId, observatronId, urlManager, resolver }) {
   const um = urlManager || new UrlManager();
   const store = {}; // flat URL-keyed map of facet stores
 
   const systemUrl = um.mintSystem(systemId);
   const observatronUrl = um.mintObservatron(systemUrl, observatronId);
 
-  // --- Helper: write full four-facet set for a URL ---
+  // --- Helper: write full facet set for a URL ---
   function writeFacets(url, facets) {
     store[url] = facets;
+    if (resolver) {
+      resolver.writeFacets(url, facets).catch(() => {});
+    }
   }
 
-  // --- appendContext: push one row onto the four column arrays in lockstep ---
+  // --- appendContext: push one row onto the six column arrays in lockstep ---
   function appendContext({ url, channel, key, value }) {
     const ctx = store[url]["/context"];
     const ts = new Date().toISOString();
-    ctx.timestamp.push(ts);
+    ctx.anchor.push(url);
+    ctx.source.push(observatronUrl);
     ctx.channel.push(channel);
+    ctx.timestamp.push(ts);
     ctx.key.push(key);
     ctx.value.push(value);
   }
 
   // --- Initialize system node ---
   const systemFacets = emptyFacets();
-  systemFacets["/data"].anchor = [systemUrl];
   systemFacets["/meaning"].symbol = [systemUrl];
   systemFacets["/meaning"].meaning = ["user system"];
   systemFacets["/structure"]["constraint-key"] = ["kind"];
   systemFacets["/structure"]["constraint-value"] = ["system"];
   writeFacets(systemUrl, systemFacets);
-  appendContext({ url: systemUrl, channel: "system-instantiated", key: "systemId", value: systemId });
+  appendContext({ url: systemUrl, channel: "cgp:/root/events/observatron/system-instantiated", key: "systemId", value: systemId });
 
   // --- Initialize observatron node ---
   const obsFacets = emptyFacets();
-  obsFacets["/data"].anchor = [observatronUrl];
   obsFacets["/meaning"].symbol = [observatronUrl];
   obsFacets["/meaning"].meaning = ["observatron"];
   obsFacets["/structure"]["constraint-key"] = ["kind"];
   obsFacets["/structure"]["constraint-value"] = ["observatron"];
   writeFacets(observatronUrl, obsFacets);
-  appendContext({ url: observatronUrl, channel: "observatron-bound", key: "observatronId", value: observatronId });
+  appendContext({ url: observatronUrl, channel: "cgp:/root/events/observatron/observatron-bound", key: "observatronId", value: observatronId });
 
   // --- Public API ---
   function mintEvent({ channel }) {
     const eventUrl = um.mintEvent(observatronUrl, channel);
     const facets = emptyFacets();
-    facets["/data"].anchor = [eventUrl];
     facets["/meaning"].symbol = [eventUrl];
     facets["/meaning"].meaning = [channel];
     facets["/structure"]["constraint-key"] = ["kind"];
     facets["/structure"]["constraint-value"] = ["event"];
     writeFacets(eventUrl, facets);
-    appendContext({ url: eventUrl, channel: "event-fired", key: "trigger", value: "drop" });
+    appendContext({ url: eventUrl, channel: "cgp:/root/events/observatron/event-fired", key: "trigger", value: "drop" });
     return eventUrl;
   }
 
   function mintAnchor({ eventUrl, filename, content, bytes, rows }) {
     const anchorUrl = um.mintAnchor(eventUrl);
     const facets = emptyFacets();
-    facets["/data"].anchor = [anchorUrl];
+    facets["/data"] = { value: [content] };
     facets["/meaning"].symbol = [anchorUrl];
     facets["/meaning"].meaning = [filename];
     facets["/structure"]["constraint-key"] = ["kind", "format", "bytes", "rows"];
     facets["/structure"]["constraint-value"] = ["anchor", "csv", bytes, rows];
     writeFacets(anchorUrl, facets);
-    appendContext({ url: anchorUrl, channel: "anchor-minted", key: "filename", value: filename });
+    appendContext({ url: anchorUrl, channel: "cgp:/root/events/observatron/anchor-minted", key: "filename", value: filename });
     return anchorUrl;
   }
 
   function mintPath({ anchorUrl, header, values, columnIndex }) {
     const pathUrl = um.mintPath(anchorUrl);
     const facets = emptyFacets();
-    facets["/data"].anchor = [pathUrl];
+    facets["/data"] = { value: values };
     facets["/meaning"].symbol = [pathUrl];
     facets["/meaning"].meaning = [header];
     facets["/structure"]["constraint-key"] = ["type", "columnIndex"];
     facets["/structure"]["constraint-value"] = ["string", columnIndex];
     writeFacets(pathUrl, facets);
-    appendContext({ url: pathUrl, channel: "path-minted", key: "header", value: header });
+    appendContext({ url: pathUrl, channel: "cgp:/root/events/observatron/path-minted", key: "header", value: header });
     return pathUrl;
   }
 

@@ -1,6 +1,15 @@
 // cgp-html-forms-drag-and-drop.js — Canonical CGP custom element for drag-and-drop observation
 import { createObservatron } from './cgp-runtime.js';
 
+const _cgpBroadcast = new BroadcastChannel('cgp-state');
+document.addEventListener('cgp-state-change', (e) => {
+  _cgpBroadcast.postMessage({
+    type: 'cgp-state-change',
+    event: e.detail.event,
+    state: e.detail.state
+  });
+});
+
 class CgpHtmlFormsDragAndDrop extends HTMLElement {
   connectedCallback() {
     // --- Resolve drop target ---
@@ -31,13 +40,22 @@ class CgpHtmlFormsDragAndDrop extends HTMLElement {
     const systemId = this.getAttribute('cgp-system-id') || '0';
     const observatronId = this.getAttribute('cgp-observatron-id') || '0';
 
-    // Fetch event definition JSON
-    const base = new URL('.', import.meta.url).href;
-    const eventDef = await fetch(new URL('events/state-change.json', base)).then(r => r.json());
+    // Discover resolver via global
+    const resolver = window.__cgpResolver || null;
+
+    // Resolve event definition: prefer resolver, fallback to fetch
+    let eventDef;
+    const eventDefUrl = 'cgp:/root/events/observatron/state-change';
+    if (resolver && resolver.has(eventDefUrl)) {
+      eventDef = resolver.resolve(eventDefUrl);
+    } else {
+      const base = new URL('.', import.meta.url).href;
+      eventDef = await fetch(new URL('cgp/root/events/observatron/state-change.json', base)).then(r => r.json());
+    }
     this._eventDefUrl = eventDef.url;
 
-    // Create observatron instance
-    this._obs = createObservatron({ systemId, observatronId });
+    // Create observatron instance (pass resolver for write-through)
+    this._obs = createObservatron({ systemId, observatronId, resolver });
 
     // Build instance metadata
     const typeUrl = 'cgp:/core/html/forms/drag-and-drop';

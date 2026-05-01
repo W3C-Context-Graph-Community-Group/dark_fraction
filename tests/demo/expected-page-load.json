@@ -1,0 +1,80 @@
+{
+  "cgp:/s/0": {
+    "/data": {},
+    "/meaning": {
+      "symbol": [
+        "cgp:/s/0"
+      ],
+      "meaning": [
+        "user system"
+      ]
+    },
+    "/structure": {
+      "constraint-key": [
+        "kind"
+      ],
+      "constraint-value": [
+        "system"
+      ]
+    },
+    "/context": {
+      "anchor": [
+        "cgp:/s/0"
+      ],
+      "source": [
+        "cgp:/s/0/o/0"
+      ],
+      "channel": [
+        "cgp:/root/events/observatron/system-instantiated"
+      ],
+      "timestamp": [
+        "2026-05-01T03:58:43.650Z"
+      ],
+      "key": [
+        "systemId"
+      ],
+      "value": [
+        "0"
+      ]
+    }
+  },
+  "cgp:/s/0/o/0": {
+    "/data": {},
+    "/meaning": {
+      "symbol": [
+        "cgp:/s/0/o/0"
+      ],
+      "meaning": [
+        "observatron"
+      ]
+    },
+    "/structure": {
+      "constraint-key": [
+        "kind"
+      ],
+      "constraint-value": [
+        "observatron"
+      ]
+    },
+    "/context": {
+      "anchor": [
+        "cgp:/s/0/o/0"
+      ],
+      "source": [
+        "cgp:/s/0/o/0"
+      ],
+      "channel": [
+        "cgp:/root/events/observatron/observatron-bound"
+      ],
+      "timestamp": [
+        "2026-05-01T03:58:43.650Z"
+      ],
+      "key": [
+        "observatronId"
+      ],
+      "value": [
+        "0"
+      ]
+    }
+  }
+}

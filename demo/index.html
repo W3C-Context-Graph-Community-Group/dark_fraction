@@ -241,6 +241,37 @@
 
     /* Layout transparency for the custom element */
     cgp-html-forms-drag-and-drop { display: contents; }
+
+    /* --- Conformance panel --- */
+    .conformance-panel {
+      border-top: 1px solid #45475a;
+      margin-top: 16px;
+      padding-top: 12px;
+    }
+    .conformance-panel .panel-label {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+      color: #6c7086; margin-bottom: 10px;
+    }
+    .conformance-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 0;
+      font-size: 12px;
+    }
+    .conformance-status { font-size: 14px; flex-shrink: 0; }
+    .conformance-status.pending { color: #6c7086; }
+    .conformance-status.pass    { color: #a6e3a1; }
+    .conformance-status.fail    { color: #f38ba8; }
+    .conformance-label { font-weight: 700; color: #cdd6f4; }
+    .conformance-detail { font-size: 10px; color: #6c7086; margin-left: auto; }
+    .conformance-detail a { color: #89b4fa; cursor: pointer; text-decoration: underline; }
+    .conformance-diff {
+      display: none;
+      font-size: 10px;
+      color: #f38ba8;
+      padding: 6px 0 2px 22px;
+      line-height: 1.6;
+    }
+    .conformance-diff.open { display: block; }
   </style>
 </head>
 <body>
@@ -269,11 +300,6 @@
         <button id="cgpToggle" class="control-row__toggle control-row__toggle--on">CGP ON</button>
       </div>
       <div class="panel-left__body" id="panelLeftBody">
-        <div class="drop-zone" id="dropZone">
-          <div class="drop-zone-icon">&#8693;</div>
-          <div>Drag &amp; Drop</div>
-          <div class="drop-zone-label">Drop a CSV here</div>
-        </div>
       </div>
       <div class="code-preview">
         <pre id="codePreviewPre"></pre>
@@ -290,21 +316,136 @@
       </div>
       <div class="panel-label">State</div>
       <pre class="json-view" id="jsonView"></pre>
+      <div id="conformancePanel" class="conformance-panel">
+        <div class="panel-label">Conformance</div>
+        <div class="conformance-row" id="conformPageLoad">
+          <span class="conformance-status pending">&#8987;</span>
+          <span class="conformance-label">PAGE LOAD</span>
+          <span class="conformance-detail"></span>
+        </div>
+        <div class="conformance-diff" id="conformPageLoadDiff"></div>
+        <div class="conformance-row" id="conformPostDrop">
+          <span class="conformance-status pending">&#8987;</span>
+          <span class="conformance-label">POST DROP</span>
+          <span class="conformance-detail"></span>
+        </div>
+        <div class="conformance-diff" id="conformPostDropDiff"></div>
+      </div>
     </div>
   </div>
 
   <script type="module">
+    import { CgpFetchBackend }            from '../js/cgp/CgpFetchBackend.js';
+    import { CgpResolver }                from '../js/cgp/CgpResolver.js';
+    import { CGP_KNOWN_PATHS }            from '../js/cgp/cgp-known-paths.js';
     import { ComponentTypeRegistry }      from '../js/cgp/ComponentTypeRegistry.js';
     import { ComponentInstanceRegistry }  from '../js/cgp/ComponentInstanceRegistry.js';
     import { ComponentInstanceListView }  from '../js/cgp/ComponentInstanceListView.js';
+    import { ComponentTypeListView }      from '../js/cgp/ComponentTypeListView.js';
+    import { EventBus }                   from '../lib/event-bus/client.js';
+    import { compareState }               from '../js/cgp/conformance.js';
+
+    // --- Initialize CGP resolver ---
+    const backend  = new CgpFetchBackend('../cgp/', CGP_KNOWN_PATHS);
+    const resolver = new CgpResolver(backend);
+    await resolver.init();
+    window.__cgpResolver = resolver;
+
+    const bus = new EventBus();
+    const VARS_URL = 'cgp:/s/calc/o/0/c/variables-changed';
 
     // --- Registries + list view ---
-    const typeRegistry     = new ComponentTypeRegistry();
-    const instanceRegistry = new ComponentInstanceRegistry();
+    const typeRegistry     = new ComponentTypeRegistry({ resolver });
+    const instanceRegistry = new ComponentInstanceRegistry({ resolver });
     const listView         = new ComponentInstanceListView(instanceRegistry);
 
-    // Load type definitions (relative to this page)
+    // Load type definitions (near no-op — resolver already loaded everything)
     await typeRegistry.load('../');
+    const typeListView = new ComponentTypeListView(typeRegistry);
+
+    // --- JSON state rendering (registered before element upgrade to catch initial state) ---
+    let currentState = {};
+    function renderJson(obj) {
+      currentState = obj;
+      const raw = JSON.stringify(obj, null, 2);
+      const html = raw
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/"([^"]+)"(?=\s*:)/g, '<span class="json-key">"$1"</span>')
+        .replace(/:\s*"([^"]*?)"/g, ': <span class="json-string">"$1"</span>')
+        .replace(/:\s*(\d+\.?\d*)/g, ': <span class="json-number">$1</span>')
+        .replace(/[{}\[\]]/g, '<span class="json-brace">$&</span>');
+      document.getElementById('jsonView').innerHTML = html;
+    }
+
+    // --- Conformance fixtures & checker ---
+    const [expectedPageLoad, expectedPostDrop] = await Promise.all([
+      fetch('../tests/demo/expected-page-load.json').then(r => r.json()),
+      fetch('../tests/demo/expected-post-drop.json').then(r => r.json()),
+    ]);
+
+    let stateChangeCount = 0;
+
+    function updateRow(rowEl, diffEl, result) {
+      const icon = rowEl.querySelector('.conformance-status');
+      const detail = rowEl.querySelector('.conformance-detail');
+      icon.classList.remove('pending', 'pass', 'fail');
+      if (result.match) {
+        icon.textContent = '\u2713';
+        icon.classList.add('pass');
+        detail.textContent = '';
+        diffEl.classList.remove('open');
+        diffEl.textContent = '';
+      } else {
+        icon.textContent = '\u2717';
+        icon.classList.add('fail');
+        detail.innerHTML = '<a class="conformance-toggle">show diff</a>';
+        const lines = result.diffs.map(d => {
+          if (!d.facet) return `${d.url}: ${d.actual}`;
+          return `${d.url} ${d.facet}.${d.key}: expected ${d.expected}, got ${d.actual}`;
+        });
+        diffEl.textContent = lines.join('\n');
+        detail.querySelector('.conformance-toggle').addEventListener('click', () => {
+          diffEl.classList.toggle('open');
+        });
+      }
+    }
+
+    document.addEventListener('cgp-state-change', (e) => {
+      renderJson(e.detail.state);
+
+      // --- Conformance checks ---
+      stateChangeCount++;
+      const pageLoadResult = compareState(e.detail.state, expectedPageLoad);
+      updateRow(
+        document.getElementById('conformPageLoad'),
+        document.getElementById('conformPageLoadDiff'),
+        pageLoadResult
+      );
+      if (stateChangeCount > 1) {
+        const postDropResult = compareState(e.detail.state, expectedPostDrop);
+        updateRow(
+          document.getElementById('conformPostDrop'),
+          document.getElementById('conformPostDropDiff'),
+          postDropResult
+        );
+      }
+
+      // Extract column names from paths and emit to calculator
+      const state = e.detail.state;
+      const variables = [];
+      for (const [url, facets] of Object.entries(state)) {
+        if (url.includes('/p/')) {
+          const name = facets['/meaning']?.meaning?.[0];
+          if (name) variables.push({ name, facets: [false, false, false], facetValues: ['', '', ''] });
+        }
+      }
+      if (variables.length > 0) {
+        bus.emit(VARS_URL, { variables });
+      }
+    });
+
+    renderJson({});
 
     // --- State ---
     let cgpEnabled = true;
@@ -316,24 +457,6 @@
       instanceRegistry.register({ instanceUrl, typeUrl, element, attributes });
       listView.render(document.getElementById('instanceList'));
     });
-
-    // --- Dynamically wrap drop zone with the new custom element ---
-    const dropZone    = document.getElementById('dropZone');
-    const body        = document.getElementById('panelLeftBody');
-
-    const wrapper = document.createElement('cgp-html-forms-drag-and-drop');
-    wrapper.setAttribute('cgp-target', '.drop-zone');
-    wrapper.setAttribute('cgp-system-id', '0');
-    wrapper.setAttribute('cgp-observatron-id', '0');
-
-    // Move drop zone inside wrapper, append wrapper to body
-    body.removeChild(dropZone);
-    wrapper.appendChild(dropZone);
-    body.appendChild(wrapper);
-
-    // Define the custom element (triggers upgrade → connectedCallback → cgp-instance-ready)
-    await import('../cgp-html-forms-drag-and-drop.js');
-    cgpElement = wrapper;
 
     // --- Code preview ---
     function renderCodePreview() {
@@ -353,7 +476,36 @@
           '<span class="hl-punct">&lt;/</span><span class="hl-tag">div</span><span class="hl-punct">&gt;</span>';
       }
     }
-    renderCodePreview();
+    // --- Initially hide middle panel content ---
+    document.getElementById('cgpToggle').style.display = 'none';
+
+    // --- Render type list in left panel (deferred instantiation on click) ---
+    typeListView.render(document.getElementById('instanceList'), async (typeUrl, typeDef) => {
+      if (cgpElement) return; // only instantiate once
+
+      // Create drop zone and custom element wrapper
+      const body = document.getElementById('panelLeftBody');
+      body.innerHTML = '';
+      const dropZone = document.createElement('div');
+      dropZone.className = 'drop-zone';
+      dropZone.id = 'dropZone';
+      dropZone.innerHTML = '<div class="drop-zone-icon">&#8693;</div><div>Drag &amp; Drop</div><div class="drop-zone-label">Drop a CSV here</div>';
+
+      const wrapper = document.createElement('cgp-html-forms-drag-and-drop');
+      wrapper.setAttribute('cgp-target', '.drop-zone');
+      wrapper.setAttribute('cgp-system-id', '0');
+      wrapper.setAttribute('cgp-observatron-id', '0');
+      wrapper.appendChild(dropZone);
+      body.appendChild(wrapper);
+
+      // Define the custom element (triggers connectedCallback → cgp-instance-ready)
+      await import('../cgp-html-forms-drag-and-drop.js');
+      cgpElement = wrapper;
+
+      // Show CGP toggle and code preview
+      document.getElementById('cgpToggle').style.display = '';
+      renderCodePreview();
+    });
 
     // --- CGP toggle ---
     const toggleBtn = document.getElementById('cgpToggle');
@@ -417,7 +569,6 @@
     });
 
     // --- Copy button ---
-    let currentState = {};
     window.copyState = function() {
       const btn = document.getElementById('copyBtn');
       navigator.clipboard.writeText(JSON.stringify(currentState, null, 2)).then(() => {
@@ -429,26 +580,6 @@
         }, 1500);
       });
     };
-
-    // --- JSON state rendering ---
-    function renderJson(obj) {
-      currentState = obj;
-      const raw = JSON.stringify(obj, null, 2);
-      const html = raw
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/"([^"]+)"(?=\s*:)/g, '<span class="json-key">"$1"</span>')
-        .replace(/:\s*"([^"]*?)"/g, ': <span class="json-string">"$1"</span>')
-        .replace(/:\s*(\d+\.?\d*)/g, ': <span class="json-number">$1</span>')
-        .replace(/[{}\[\]]/g, '<span class="json-brace">$&</span>');
-      document.getElementById('jsonView').innerHTML = html;
-    }
-
-    document.addEventListener('cgp-state-change', (e) => {
-      renderJson(e.detail.state);
-    });
-
-    renderJson({});
   </script>
 </body>
 </html>

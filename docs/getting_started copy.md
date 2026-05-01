@@ -35,16 +35,16 @@ cgp:/s/<system>/o/<observatron>/c/<channel-name>/<event-n>/a/<anchor>/p/<path>
 cgp:/s/0
   instance: "0" (or whatever the system is named)
 
-cgp:/s/0/o/0
-  instance: "0" (or whatever the observatron is named)
+cgp:/s/0/o/1
+  instance: "1" (or whatever the observatron is named)
 
-cgp:/s/0/o/0/c/state-change/4
+cgp:/s/0/o/1/c/state-change/4
   instance: summary of the 5th state-change event
 
-cgp:/s/0/o/0/c/state-change/4/a/0
+cgp:/s/0/o/1/c/state-change/4/a/0
   instance: the anchor's payload (e.g., a CSV file's contents)
 
-cgp:/s/0/o/0/c/state-change/4/a/0/p/0
+cgp:/s/0/o/1/c/state-change/4/a/0/p/0
   instance: the column's values (the leaf payload)
 ```
 #### Event Position and Time
@@ -67,7 +67,7 @@ Every addressable unit in any system — a CSV column, a system prompt workflow 
 - **Data** — The content wrapped by **Context Graph Protocol Language** (*CGPL*) markup and captured at an interaction event.
 - **Meaning** — The semantic domain the data refers to: what it *is about* in the world, not what it *is* on the page.
 - **Structure** — The constraints, generators, and validators of a schema (JSON Schema syntax is default).
-- **Context** — A time-ordered log of what has happened at this unit. Each facet is a columnar store: `anchor`, `source`, `channel`, `timestamp`, `key`, and `value` are six parallel arrays of equal length. Row N of the log is element N of each array. Rule firings, asks, resolutions, state changes — all in the same shape.
+- **Context** — A time-ordered log of what has happened at this unit. Each facet is a columnar store: `anchor`, `source`, `channel`, `timestamp`, `key`, and `value` are six parallel arrays of equal length.
 
 Same four facets everywhere. That uniformity is the geometry. Once it's in place, the invisible becomes addressable with a URL. Before we can do anything, we need to be able to measure it. Without a shared geometry, there's no shared "perspective lines" to make comparisons at all.
 
@@ -87,7 +87,9 @@ inside one facet have equal length.
 
 An empty facet declares its schema with empty arrays:
 
-    "/context": { "anchor": [], "source": [], "channel": [], "timestamp": [], "key": [], "value": [] }
+```
+"/context": { "anchor": [], "source": [], "channel": [], "timestamp": [], "key": [], "value": [] }
+```
 
 Append a row by pushing one element onto every column in lockstep. The 
 runtime's `appendContext` helper enforces the invariant; direct mutation 
@@ -184,13 +186,13 @@ Worked example — *δ = 74.61%*. A CSV drop with three variables: Date, Oil Pri
 
 Closing each facet gap is a specific, countable action. Manual reduction becomes a measurable benchmark — the progression table below shows how δ moves as verifications accumulate.
 
-### Symbol Legend
+### Symbol Legend for Dark Fraction Calculation
 
 | Symbol | Name | Description |
 |---|---|---|
 | `δ` | dark fraction | The computed score. Fraction of the joint configuration space still unresolved. Ranges from 0 (fully verified) to nearly 1 (fully dark). Unitless. |
 | `m` | variable count | Number of variables at the boundary — columns in a dataset, fields in a form, slots in a query. |
-| `n` | facet count | Total verifiable facets, always **3m**. Three facets per variable: Meaning, Structure, Context. Data anchors the spike but is not verifiable in the score. |
+| `n` | facet count | Total verifiable facets, always **3m**. Three facets per variable: Meaning, Structure, Context. Data carries the transmitted payload — it is what gets verified, not a verifiable facet itself. |
 | `r` | verified count | How many of the n facets have been populated with a verification value. Moves from 0 to n as reduction happens. |
 | `B_r` | Hamming ball of radius r | The set of configurations reachable within r verifications of the fully-verified state. |
 | `\|B_r\|` | cardinality of B_r | Count of configurations in the Hamming ball. Computed as Σ C(n, k) for k = 0..r. |
@@ -243,12 +245,12 @@ This is the geometric picture the protocol is built on:
   events of one kind. Channel and aperture are the same thing: the 
   channel's URL names it by role (the kind of event), its shape on 
   the surface names it by geometry.
-- An **event** is an arrival through a channel. The event's **anchor**
-  (recorded in `/context`'s anchor column, invariant across rows) plugs
-  into the channel's opening.
-- A **spike** is the tetrahedron that forms when an anchor plugs into
-  a channel. The payload (`/data`) at the base; Meaning, Structure, and
-  Context rising as the three elevated faces.
+- An **event** is an arrival through a channel. The event's **anchor** 
+  (its `/data`) plugs into the channel's opening.
+- A **spike** is the tetrahedron that forms when an anchor plugs into 
+  a channel. Anchor at the base (pressed into the aperture); Meaning, 
+  Structure, and Context rising from the anchor as the three elevated 
+  faces.
 
 An observatron with no events yet isn't empty — it's a sphere whose 
 surface already carries a set of typed channels, waiting. Events 
@@ -265,18 +267,16 @@ adds causal clarity about how those meanings fit together:
 | **Observatron** | The node stationed at a boundary | A sphere whose surface carries typed channels, waiting for events |
 | **Channel** | A URL under `cgp:/root/events/` identifying the kind of event | A typed aperture on the observatron's surface, shaped to receive events of that kind |
 | **Event** | A firing in a channel | An arrival through the channel that anchors a spike |
-| **Anchor** | The invariant identity in `/context`'s anchor column | The part of the spike that plugs into the channel's opening |
+| **Anchor** | `/data`'s single row | The part of the spike that plugs into the channel's opening |
 | **Spike** | A tetrahedron attached to the observatron | What forms when an event's anchor plugs into a channel |
 
 Three things snap into place under this picture:
 
-**1. Why `/data` has exactly one row.** A spike carries one payload —
-the Shannon message transmitted through the channel. A spike with two
-payloads would be two transmissions; a spike with zero payloads would
-carry no information. One transmission, one payload, one `/data` row.
-The single-row rule isn't a storage convention — it's the unit of
-transmission. The anchor — which pins the spike to its channel —
-lives in `/context`'s anchor column, invariant across all rows.
+**1. Why `/data` has exactly one row.** The anchor is the plug that 
+fits into the channel. A spike with two anchors would try to fit into 
+two channels at once; a spike with zero anchors would float, 
+unattached. One channel, one plug, one anchor. The single-row rule 
+isn't a storage convention — it's geometric necessity.
 
 **2. Why the `channel` column in a claim is load-bearing.** The 
 channel URL in a claim isn't metadata *about* the event. It names 
@@ -356,42 +356,33 @@ The fastest path from zero to a working CGP observation. Wrap a DOM element, dro
 
 Here's `cgp:/s/0` — the system node — encoded as a four-facet model:
 
-    {
-      "/data": {},
-      "/meaning": {
-        "symbol":  ["cgp:/s/0"],
-        "meaning": ["user system"]
-      },
-      "/structure": {
-        "constraint-key":   ["kind"],
-        "constraint-value": ["system"]
-      },
-      "/context": {
-        "anchor":    ["cgp:/s/0"],
-        "source":    ["cgp:/s/0/o/0"],
-        "channel":   ["cgp:/root/events/observatron/system-instantiated"],
-        "timestamp": ["2026-04-24T18:30:00.123Z"],
-        "key":       ["systemId"],
-        "value":     ["0"]
-      }
-    }
+```
+{
+  "/data": {},
+  "/meaning": {
+    "symbol":  ["cgp:/s/0"],
+    "meaning": ["user system"]
+  },
+  "/structure": {
+    "constraint-key":   ["kind"],
+    "constraint-value": ["system"]
+  },
+  "/context": {
+    "anchor":    ["cgp:/s/0"],
+    "source":    ["cgp:/s/0/o/1"],
+    "channel":   ["cgp:/root/events/observatron/system-instantiated"],
+    "timestamp": ["2026-04-24T18:30:00.123Z"],
+    "key":       ["systemId"],
+    "value":     ["0"]
+  }
+}
+```
 
-**The data rule.** `/data` is payload-bearing and single-row. For
-protocol-level spikes with no payload (system, observatron, event),
-`/data` is `{}`. For spikes that carry content — anchors carrying file
-data, paths carrying column values — `/data` is `{ value: [<content>] }`.
+**The data rule.** `/data` carries the spike's transmitted payload — the Shannon message that brought the spike into existence. By convention `/data` is single-row: when payload is present, the row sits in a `value` column (`{"value": [<payload>]}`); when no payload has been received yet, `/data` is `{}` — empty, but still single-row by convention.
 
-The payload is the Shannon message transmitted through the channel. A
-spike with two payloads would be two transmissions; a spike whose
-anchor hasn't plugged into a channel carries no message. One
-transmission, one payload, one `/data` entry. The anchor — which pins
-the spike to its channel — lives in `/context`'s anchor column,
-invariant across all rows on a single spike.
+The "which thing are we talking about" job lives in `/context`, not `/data`. Every row in `/context` has an `anchor` column whose value is the URL of the spike the row belongs to — invariant across the spike's whole log. The other three facets (`/meaning`, `/structure`, the rest of `/context`) describe, constrain, and log the history of the thing addressed by that anchor URL.
 
-The other three facets have no row limit. `/meaning` can carry many
-symbol→meaning pairs. `/structure` can stack constraints. `/context`
-grows as events accumulate. Only `/data` is pinned to a single
-payload, because only `/data` answers *what was transmitted*.
+The other three facets have no row limit. `/meaning` can carry many symbol→meaning pairs. `/structure` can stack constraints. `/context` grows as events accumulate. Only `/data` is pinned to one row, because only `/data` is the payload — and a spike has exactly one payload.
 
 #### Install
 
@@ -408,7 +399,7 @@ Import the component once at the top of your page, then wrap any element you wan
   import "cgp-components/drag-and-drop";
 </script>
 
-<cgp-drag-and-drop system-id="0" observatron-id="0">
+<cgp-drag-and-drop system-id="0" observatron-id="1">
   <div class="drop-target">Drop a CSV here</div>
 </cgp-drag-and-drop>
 ```
@@ -417,7 +408,7 @@ The tag takes two attributes:
 - `system-id` — any URL-safe string; your system's identifier
 - `observatron-id` — any URL-safe string; this observatron's identifier within the system
 
-The wrapper is transparent. The inner `<div>` remains the drop target. On page load, the wrapper instantiates an observatron and mints two nodes: `cgp:/s/0` (the system) and `cgp:/s/0/o/0` (the observatron), each with their four facets populated.
+The wrapper is transparent. The inner `<div>` remains the drop target. On page load, the wrapper instantiates an observatron and mints two nodes: `cgp:/s/0` (the system) and `cgp:/s/0/o/1` (the observatron), each with their four facets populated.
 
 #### Listen for state changes
 
@@ -474,9 +465,9 @@ Every URL has four facets, written as terminal path segments:
 <url>/context     a time-ordered log of what has happened
 ```
 
-All four apply at every slot depth. `cgp:/s/0/data` is valid. So is `cgp:/s/0/o/0/c/state-change/4/a/0/p/0/data`.
+All four apply at every slot depth. `cgp:/s/0/data` is valid. So is `cgp:/s/0/o/1/c/state-change/4/a/0/p/0/data`.
 
-Every /context facet is a six-column columnar store — `anchor`, `source`, `channel`, `timestamp`, `key`, and `value` are six parallel arrays of equal length, appended in lockstep. Row N of the log is element N of each array. Context is the collision surface: where actions, events, and timestamped interactions leave their trace on a node.
+Every /context facet is a four-column columnar store — `timestamp`, `channel`, `key`, and `value` are four parallel arrays of equal length, appended in lockstep. Row N of the log is element N of each array. Context is the collision surface: where actions, events, and timestamped interactions leave their trace on a node.
 
 ### Truncation
 
@@ -484,23 +475,22 @@ Any prefix of the slot pattern is either a **node** (only `cgp:/s/<s>/o/<o>`) or
 
 ```
 cgp:/s/0                                       the system
-cgp:/s/0/o/0                                   an observatron
-cgp:/s/0/o/0/c/state-change/4                  an event in a channel
-cgp:/s/0/o/0/c/state-change/4/a/0              an anchor
-cgp:/s/0/o/0/c/state-change/4/a/0/p/0          a spike (path)
+cgp:/s/0/o/1                                   an observatron
+cgp:/s/0/o/1/c/state-change/4                  an event in a channel
+cgp:/s/0/o/1/c/state-change/4/a/0              an anchor
+cgp:/s/0/o/1/c/state-change/4/a/0/p/0          a spike (path)
 ```
 
 ### Reserved
 
 The system id `root` is reserved for the protocol's own self-description. All other IDs — including `0`, `1`, `2`, … — are available to user systems.
 
-Reserved namespaces:
+Reserved namespaces under `cgp:/root`:
 
 | Segment | Purpose |
 |---|---|
 | `cgp:/root/events` | Registry of channel definitions. Each channel lives at `cgp:/root/events/<source>/<name>` with the standard four facets. The leaf name is what appears as `<channel-name>` in observation URLs. |
 | `cgp:/root/claims` | Reserved for future claim log storage. |
-| `cgp:/core/...` | Registry of component type definitions. Each component type lives at `cgp:/core/<syntax>/<library>/<component>` with the standard four facets (e.g., `cgp:/core/html/forms/drag-and-drop`). |
 
 ## The Canonical Claim Form
 
@@ -510,18 +500,18 @@ Claims are a **view** over the URL-addressed facet store — projected when need
 
 ### The Six Columns
 
-Every claim has exactly six columns — matching the six parallel arrays in `/context`. Each is either a URL (acting as ID, reference, and address simultaneously — see "IDs, References, and Instances" above) or a literal.
+Every claim has exactly six columns. Each is either a URL (acting as ID, reference, and address simultaneously — see "IDs, References, and Instances" above) or a literal.
 
 | Column | Holds | Example |
 |---|---|---|
-| `anchor` | URL of the spike this row is about — invariant across all rows on a single spike. | `cgp:/s/0/o/0/c/state-change/4` |
-| `source` | URL of the observatron that emitted the row. For locally-emitted claims, this is the local observatron's URL. | `cgp:/s/0/o/0` |
+| `anchor` | URL of the spike this claim is recorded against. Invariant across all rows on a single spike. | `cgp:/s/0/o/1/c/state-change/4/a/0` |
+| `source` | URL of the node that produced the claim. | `cgp:/s/0/o/1` |
 | `channel` | URL of the channel definition — the kind of claim. | `cgp:/root/events/observatron/state-change` |
 | `timestamp` | When the claim was made. ISO 8601 UTC, millisecond precision. | `2026-04-22T22:30:00.003Z` |
 | `key` | Path within the facet being asserted about. | `/properties.event.type` |
 | `value` | The asserted value. A literal or a URL. | `"trade execution date"` |
 
-Read a claim left-to-right as a sentence: *at `timestamp`, `source` asserted that the spike at `anchor` has `key` = `value`, as a claim of kind `channel`*.
+Read a claim left-to-right as a sentence: *at `timestamp`, `source` asserted about `anchor` that the facet at `key` has `value`, as a claim of kind `channel`*.
 
 ### Identity Is Positional
 
@@ -530,16 +520,15 @@ When claims are stored as an ordered array, the position in the array is the cla
 Individual claims become URL-addressable when they need to be referenced: claim N in a channel's log is addressable under `cgp:/s/<s>/o/<o>/c/<channel>/<event-n>`. The URL is constructed on demand from the log's location and the claim's position; it does not live inside the claim itself.
 
 
-**Claim Tuple (ANCHOR, SOURCE, CHANNEL, TIME, KEY, VALUE)**
+**Claim Tuple (TIME, CHANNEL, SOURCE, KEY, VALUE)**
 
-- **ANCHOR**: what the claim is about (URL of the spike, invariant across rows)
-- **SOURCE**: who emitted it (URL of the observatron)
 - **CHANNEL**: what kind of transmission it was (URL of the event definition)
+- **SOURCE**: who transmitted it (URL of the emitting node)
 - **TIME**: when the transmission happened (Context timestamp, or the ordinal event-n if you only need ordering)
 - **KEY**: where in the payload (path within the facet)
 - **VALUE**: what was asserted at that position
 
-All six are addressable, all six compose into claims, all six can be compared across observatrons, systems, and time. Because the URL structure carries ANCHOR, SOURCE, CHANNEL, and — via event-n — TIME ordering, only KEY and VALUE are strictly non-derivable; the rest can be reconstructed from the URL the claim lives at.
+All five are addressable, all five compose into claims, all five can be compared across observatrons, systems, and time. Because the URL structure carries the first three (CHANNEL, SOURCE, and — via event-n — TIME ordering), only KEY and VALUE live in the claim's row; the rest are derivable from the URL the claim lives at.
 
 The compression isn't a performance optimization. It's the mechanism by which **two independent systems can compare what they saw without sharing any prior schema**. Each system produces URLs that carry their own context. A reader of either system's graph can walk URLs alone to reconstruct most of the picture, dereference `/context` for time, dereference `/data` for values, and compare projections. No lookup table, no translation layer, no schema negotiation.
 
@@ -595,13 +584,13 @@ function createObservatron({ systemId, observatronId, urlManager }) {
   //   mintEvent({ channel }) → string (the event URL)
   //   mintAnchor({ eventUrl, filename, content, bytes, rows }) → string (the anchor URL)
   //   mintPath({ anchorUrl, header, values, columnIndex }) → string (the path URL)
-  //   appendContext({ url, channel, anchor, source, key, value }) → void — pushes one element onto each of the six column arrays (timestamp, channel, anchor, source, key, value) of the node's /context facet. timestamp is stamped by the runtime at append time. The six arrays must remain equal in length; this helper enforces that invariant.
+  //   appendContext({ url, channel, key, value }) → void — pushes one element onto each of the four column arrays (timestamp, channel, key,  value) of the node's /context facet. timestamp is stamped by the runtime at append time. The four arrays must remain equal in length; this helper enforces that invariant.
   //   getState() → deep clone of the flat facet store
   //   dispatchStateChange() → fires 'cgp-state-change' with { event, state }
   //
   // On construction, writes facets for the system and observatron nodes.
-  // System's /context gets one row: channel='cgp:/root/events/observatron/system-instantiated'.
-  // Observatron's /context gets one row: channel='cgp:/root/events/observatron/observatron-bound'.
+  // System's /context gets one row: channel='system-instantiated'.
+  // Observatron's /context gets one row: channel='observatron-bound'.
 }
 ```
 
@@ -617,7 +606,9 @@ File contents:
 {
   "url": "cgp:/root/events/observatron/state-change",
   "facets": {
-    "/data": {},
+    "/data": {
+      "anchor": ["cgp:/root/events/observatron/state-change"]
+    },
     "/meaning": {
       "symbol": ["cgp:/root/events/observatron/state-change"],
       "meaning": ["Fired by an observatron whenever its state changes. Host bindings dispatch this as the DOM event 'cgp-state-change'. Payload includes the full URL-keyed facet store at the moment of emission."]
@@ -641,10 +632,8 @@ File contents:
       ]
     },
     "/context": {
-      "anchor": [],
-      "source": [],
-      "channel": [],
       "timestamp": [],
+      "channel": [],
       "key": [],
       "value": []
     }
@@ -677,10 +666,10 @@ When a user drops files onto the drag-and-drop wrapper, the observatron executes
 ```
 1. Mint ONE event under the state-change channel:
    mintEvent({ channel: 'state-change' })
-   → cgp:/s/0/o/0/c/state-change/{n}
+   → cgp:/s/0/o/1/c/state-change/{n}
    
    Write event's four facets. Append to event's /context:
-   { anchor: eventUrl, source: observatronUrl, channel: 'cgp:/root/events/observatron/event-fired', timestamp: <now>, key: 'trigger', value: 'drop' }
+   { channel: 'event-fired', key: 'trigger', value: 'drop' }
 
 2. Sort files alphabetically by filename. For each file:
 
@@ -688,19 +677,17 @@ When a user drops files onto the drag-and-drop wrapper, the observatron executes
    
    2b. Mint ONE anchor under the event:
        mintAnchor({ eventUrl, filename, content, bytes, rows })
-       → cgp:/s/0/o/0/c/state-change/{n}/a/{m}
+       → cgp:/s/0/o/1/c/state-change/{n}/a/{m}
        
-      Anchor's /data = { value: [<file content as text>] }  (the dropped file's payload)
+      Anchor's /data = { anchor: [anchorUrl] }  (self-referential, one row)
       Anchor's /meaning = { symbol: [anchorUrl], meaning: [filename] }
       Anchor's /structure = {
         "constraint-key":   ["kind",   "format", "bytes", "rows"],
         "constraint-value": ["anchor", "csv",    bytes,   rows]
       }
       Anchor's /context = {
-        anchor:    [anchorUrl],
-        source:    [eventUrl],
-        channel:   ["cgp:/root/events/observatron/anchor-minted"],
         timestamp: [<now>],
+        channel:   ["anchor-minted"],
         key:       ["filename"],
         value:     [filename]
       }
@@ -709,19 +696,17 @@ When a user drops files onto the drag-and-drop wrapper, the observatron executes
 
    2d. For each column in the CSV:
        mintPath({ anchorUrl, header, values, columnIndex })
-       → cgp:/s/0/o/0/c/state-change/{n}/a/{m}/p/{k}
+       → cgp:/s/0/o/1/c/state-change/{n}/a/{m}/p/{k}
        
-       Path's /data = { value: [<column values>] }
+       Path's /data = { anchor: [pathUrl] }
        Path's /meaning = { symbol: [pathUrl], meaning: [header] }
        Path's /structure = {
         "constraint-key":   ["type",   "columnIndex"],
         "constraint-value": ["string", k]
        }
        Path's /context = {
-        anchor:    [pathUrl],
-        source:    [anchorUrl],
-        channel:   ["cgp:/root/events/observatron/path-minted"],
         timestamp: [<now>],
+        channel:   ["path-minted"],
         key:       ["header"],
         value:     [header]
       }
@@ -735,7 +720,7 @@ When a user drops files onto the drag-and-drop wrapper, the observatron executes
 
 - Zero files dropped: No minting. No event dispatched. (Drop target may glow briefly via CSS; that's a UX concern, not a runtime concern.)
 - Zero columns in a CSV: Mint the anchor. Mint no paths. Event still fires.
-- Zero rows in a CSV (only a header row): Mint the anchor and one path per header. Each path's `/data` is `{ value: [] }` as usual
+- Zero rows in a CSV (only a header row): Mint the anchor and one path per header. Each path's `/data` is `{ anchor: [pathUrl] }` as usual
 - Multiple files dropped at once: ONE event. Multiple anchors (one per file). Paths under each anchor. One cgp-state-change dispatch at the end.
 
 **Why one event per drop. The drop is a single user gesture — one "state change" event to the host. Each file is a distinct anchor under that event. This preserves the "event = one boundary-crossing" semantics.**
@@ -748,7 +733,7 @@ The `<cgp-drag-and-drop>` element resolves its drop target via the
 **Example usage:**
 
 ```html
-<cgp-drag-and-drop system-id="0" observatron-id="0" cgp-target=".drop-target">
+<cgp-drag-and-drop system-id="0" observatron-id="1" cgp-target=".drop-target">
   <div class="drop-target">Drop a CSV here</div>
   <div class="preview">Last drop: —</div>
 </cgp-drag-and-drop>
@@ -834,7 +819,7 @@ The right panel (state display) shows a JSON object with exactly two entries:
 ```json
 {
   "cgp:/s/0": {
-    "/data": {},
+    "/data": { "anchor": ["cgp:/s/0"] },
     "/meaning": {
       "symbol":  ["cgp:/s/0"],
       "meaning": ["user system"]
@@ -844,18 +829,16 @@ The right panel (state display) shows a JSON object with exactly two entries:
       "constraint-value": ["system"]
     },
     "/context": {
-      "anchor":    ["cgp:/s/0"],
-      "source":    ["cgp:/s/0/o/0"],
-      "channel":   ["cgp:/root/events/observatron/system-instantiated"],
       "timestamp": ["<ISO-8601-UTC-ms>"],
+      "channel":   ["system-instantiated"],
       "key":       ["systemId"],
       "value":     ["0"]
     }
   },
-  "cgp:/s/0/o/0": {
-    "/data": {},
+  "cgp:/s/0/o/1": {
+    "/data": { "anchor": ["cgp:/s/0/o/1"] },
     "/meaning": {
-      "symbol":  ["cgp:/s/0/o/0"],
+      "symbol":  ["cgp:/s/0/o/1"],
       "meaning": ["observatron"]
     },
     "/structure": {
@@ -863,12 +846,10 @@ The right panel (state display) shows a JSON object with exactly two entries:
       "constraint-value": ["observatron"]
     },
     "/context": {
-      "anchor":    ["cgp:/s/0/o/0"],
-      "source":    ["cgp:/s/0/o/0"],
-      "channel":   ["cgp:/root/events/observatron/observatron-bound"],
       "timestamp": ["<ISO-8601-UTC-ms>"],
+      "channel":   ["observatron-bound"],
       "key":       ["observatronId"],
-      "value":     ["0"]
+      "value":     ["1"]
     }
   }
 }
@@ -881,12 +862,12 @@ Timestamps are real ISO 8601 UTC millisecond-precision strings (e.g., `2026-04-2
 The state panel shows exactly 7 entries:
 
 1. `cgp:/s/0` — the system (unchanged from page load)
-2. `cgp:/s/0/o/0` — the observatron (unchanged)
-3. `cgp:/s/0/o/0/c/state-change/0` — the event (new)
-4. `cgp:/s/0/o/0/c/state-change/0/a/0` — the anchor, `/meaning` = `sales.csv`
-5. `cgp:/s/0/o/0/c/state-change/0/a/0/p/0` — the Date column, `/meaning` = `Date`
-6. `cgp:/s/0/o/0/c/state-change/0/a/0/p/1` — the Oil Price column, `/meaning` = `Oil Price`
-7. `cgp:/s/0/o/0/c/state-change/0/a/0/p/2` — the Location column, `/meaning` = `Location`
+2. `cgp:/s/0/o/1` — the observatron (unchanged)
+3. `cgp:/s/0/o/1/c/state-change/0` — the event (new)
+4. `cgp:/s/0/o/1/c/state-change/0/a/0` — the anchor, `/meaning` = `sales.csv`
+5. `cgp:/s/0/o/1/c/state-change/0/a/0/p/0` — the Date column, `/meaning` = `Date`
+6. `cgp:/s/0/o/1/c/state-change/0/a/0/p/1` — the Oil Price column, `/meaning` = `Oil Price`
+7. `cgp:/s/0/o/1/c/state-change/0/a/0/p/2` — the Location column, `/meaning` = `Location`
 
 A `cgp-state-change` CustomEvent fires exactly once, with:
 
@@ -899,14 +880,14 @@ event.detail = {
 
 **After dropping `fixtures/sales.csv` a second time:**
 
-New entries appear under `cgp:/s/0/o/0/c/state-change/1` (note the counter incremented from 0 to 1). The first drop's entries remain in state. The event counter is per-channel-per-observatron, as specified in the URL Schema section.
+New entries appear under `cgp:/s/0/o/1/c/state-change/1` (note the counter incremented from 0 to 1). The first drop's entries remain in state. The event counter is per-channel-per-observatron, as specified in the URL Schema section.
 
 Total entries after two drops: 12 (the original 2 + 5 from first drop + 5 from second drop).
 
 **Out of scope for the MVP:**
 
 - Dark fraction computation (δ). The state panel shows the facet store; it does not compute or display δ.
-- Claim log materialization. No `cgp:/s/0/o/0/claims/...` URLs are minted.
+- Claim log materialization. No `cgp:/s/0/o/1/claims/...` URLs are minted.
 - Persistence. Page reload clears all state.
 - Multiple observatrons on one page.
 - Back-end bindings (SQL, API).
@@ -950,23 +931,20 @@ A **node** is an observatron. Nothing else is a node.
 
 A **spike** is a tetrahedron attached to an observatron's surface.
 
-- Every spike has exactly one **anchor** (recorded in its `/context`
-  facet's anchor column, invariant across rows) that pins it to the
-  observatron.
+- Every spike has exactly one **anchor** (held in its `/data` facet) 
+  that pins it to the observatron.
 - Every spike has four **facets**: `/data`, `/meaning`, `/structure`, 
   `/context`.
 - Spikes are URL-addressable. Any CGP URL with a `/c/`, `/a/`, or `/p/` 
   segment addresses a spike.
-- Geometrically: the payload (`/data`) is the base of the tetrahedron
-  (pressed flat against the observatron's surface); the other three
-  facets are the three elevated faces rising above it. The anchor —
-  which pins the spike to its channel — lives in `/context`'s anchor
-  column.
+- Geometrically: the anchor is the base of the tetrahedron (pressed flat 
+  against the observatron's surface); the other three facets are the 
+  three elevated faces rising above it.
 
 Examples of spike URLs:
-- `cgp:/s/0/o/0/c/state-change/4` — an event spike
-- `cgp:/s/0/o/0/c/state-change/4/a/0` — an anchor spike
-- `cgp:/s/0/o/0/c/state-change/4/a/0/p/0` — a path spike (one column of 
+- `cgp:/s/0/o/1/c/state-change/4` — an event spike
+- `cgp:/s/0/o/1/c/state-change/4/a/0` — an anchor spike
+- `cgp:/s/0/o/1/c/state-change/4/a/0/p/0` — a path spike (one column of 
   a dropped CSV)
 
 **What is NOT a spike:**
@@ -980,7 +958,7 @@ A **facet** is one of the four faces of a spike.
 - The four facets are: `/data`, `/meaning`, `/structure`, `/context`.
 - A facet is not independently addressable as a "thing." It is always 
   the `/data` of some spike, the `/meaning` of some spike, etc.
-- Writing `cgp:/s/0/o/0/data` is valid syntactically; it means "the 
+- Writing `cgp:/s/0/o/1/data` is valid syntactically; it means "the 
   /data facet of the observatron-1 spike." The URL still addresses a 
   facet-of-a-spike, not a freestanding entity.
 
@@ -1006,7 +984,7 @@ have a facet without a spike to be a face of. The hierarchy is strict:
 
     observatron (node — sphere apertured with channels)
       └── spike (tetrahedron formed when an event anchors into a channel)
-            ├── /data      (the payload — the Shannon message)
+            ├── /data      (the anchor, plugged into the channel)
             ├── /meaning   (elevated face)
             ├── /structure (elevated face)
             └── /context   (elevated face)
@@ -1064,12 +1042,12 @@ When writing code, use these identifier conventions:
 | A URL addressing an observatron | `observatronUrl` | `nodeUrl` |
 | A URL addressing a spike | `spikeUrl` or the specific kind: `eventUrl`, `anchorUrl`, `pathUrl` | `nodeUrl` |
 | The four faces | `facet`, `facets` | `field`, `property`, `attribute` |
-| `/data`'s single row | `payload`, `value` | `anchor` (anchor is now a `/context` column) |
+| `/data`'s single row | `anchor` | `root`, `identity` |
 
 When reading URLs, identify what they address:
 - `cgp:/s/0` → a system (scope, not a node)
-- `cgp:/s/0/o/0` → an **observatron** (a **node**)
-- `cgp:/s/0/o/0/c/.../a/.../p/...` → a **spike**
+- `cgp:/s/0/o/1` → an **observatron** (a **node**)
+- `cgp:/s/0/o/1/c/.../a/.../p/...` → a **spike**
 
 Everything past `/o/<id>` is a spike URL.
 
@@ -1240,8 +1218,9 @@ same four facets as every other spike in the graph.
 For the dark fraction formula — δ = 1 − |Bᵣ| / 2ⁿ — the spike lives at 
 `cgp:/root/formulas/dark-fraction` and decomposes like this:
 
-- **`/data`** — `{}` (the formula is a definition, not an instance
-  with payload). The formula's identity is its URL.
+- **`/data`** — the anchor, self-referential (one row, 
+  `{ anchor: ["cgp:/root/formulas/dark-fraction"] }`). The formula's 
+  identity.
 - **`/meaning`** — the mathematical description: what δ means, in 
   Unicode math as the canonical form: `δ = 1 − |Bᵣ| / 2ⁿ`. Readable by 
   a human, parseable by a runtime, language-neutral.
@@ -1296,23 +1275,16 @@ derive code from it.
 ### Execution as `/context`
 
 When the formula runs, each step appends one row to its `/context`. 
-The six columns do their normal work:
+The four columns do their normal work:
 
 ```json
 "/context": {
-  "anchor": [
-    "cgp:/root/formulas/dark-fraction",
-    "cgp:/root/formulas/dark-fraction",
-    "cgp:/root/formulas/dark-fraction",
-    "cgp:/root/formulas/dark-fraction",
-    "cgp:/root/formulas/dark-fraction"
-  ],
-  "source": [
-    "cgp:/root/formulas/dark-fraction",
-    "cgp:/root/formulas/dark-fraction",
-    "cgp:/root/formulas/dark-fraction",
-    "cgp:/root/formulas/dark-fraction",
-    "cgp:/root/formulas/dark-fraction"
+  "timestamp": [
+    "2026-04-24T19:00:00.001Z",
+    "2026-04-24T19:00:00.002Z",
+    "2026-04-24T19:00:00.003Z",
+    "2026-04-24T19:00:00.004Z",
+    "2026-04-24T19:00:00.005Z"
   ],
   "channel": [
     "cgp:/root/ops/hamming-ball",
@@ -1320,13 +1292,6 @@ The six columns do their normal work:
     "cgp:/root/ops/divide",
     "cgp:/root/ops/subtract",
     "cgp:/root/ops/assign"
-  ],
-  "timestamp": [
-    "2026-04-24T19:00:00.001Z",
-    "2026-04-24T19:00:00.002Z",
-    "2026-04-24T19:00:00.003Z",
-    "2026-04-24T19:00:00.004Z",
-    "2026-04-24T19:00:00.005Z"
   ],
   "key": [
     "operands",
@@ -1356,7 +1321,7 @@ Notice what the `channel` column holds: **URLs, not strings**.
 - `/meaning`: "arithmetic division over reals"
 - `/structure`: input types (two numerics), output type (one numeric)
 - `/context`: optional protocol-wide log of every invocation
-- `/data`: `{}` (the operation is a definition, not an instance with payload)
+- `/data`: the op's anchor, self-referential
 
 An auditor dereferences the URL to see exactly what `divide` meant at 
 the time it was invoked. If `divide` is later redefined (e.g., to 
@@ -1418,9 +1383,8 @@ An auditor reviewing step 3 of a dark-fraction execution emits a claim
 whose `key` column points at the formula's `/context` row:
 
 ```
-anchor:    cgp:/root/formulas/dark-fraction
-source:    cgp:/s/0/o/auditor-42
 channel:   cgp:/root/events/audit/step-certified
+source:    cgp:/s/0/o/auditor-42
 timestamp: 2026-04-25T10:00:00.000Z
 key:       cgp:/root/formulas/dark-fraction/context/3
 value:     "step reviewed; operands and result verified"
@@ -1670,7 +1634,9 @@ block as one expression in the compound formula.
 
 ```json
 {
-  "/data": {},
+  "/data": {
+    "anchor": ["cgp:/root/formulas/full-memory-recurrence"]
+  },
   "/meaning": {
     "symbol":  ["cgp:/root/formulas/full-memory-recurrence"],
     "meaning": ["Full-memory recurrence operator with spectral stability classification and multi-metric trajectory processing. Measures whether a sequence of observations is stable, critical, or explosive under a declared memory kernel, across interpolated metric regimes (Hamming / Euclidean / Finsler). Produces a trajectory fingerprint F for process comparison under scheduling perturbation. Complements the dark-fraction measure δ: where δ measures how much configuration space is unverified at a snapshot, FMR measures whether what is verified remains stable as the trajectory unfolds."],
@@ -1700,21 +1666,13 @@ block as one expression in the compound formula.
     ]
   },
   "/context": {
-    "anchor": [
-      "cgp:/root/formulas/full-memory-recurrence",
-      "cgp:/root/formulas/full-memory-recurrence",
-      "cgp:/root/formulas/full-memory-recurrence",
-      "cgp:/root/formulas/full-memory-recurrence",
-      "cgp:/root/formulas/full-memory-recurrence",
-      "cgp:/root/formulas/full-memory-recurrence"
-    ],
-    "source": [
-      "cgp:/root/formulas/full-memory-recurrence",
-      "cgp:/root/formulas/full-memory-recurrence",
-      "cgp:/root/formulas/full-memory-recurrence",
-      "cgp:/root/formulas/full-memory-recurrence",
-      "cgp:/root/formulas/full-memory-recurrence",
-      "cgp:/root/formulas/full-memory-recurrence"
+    "timestamp": [
+      "2026-04-24T19:30:00.000Z",
+      "2026-04-24T19:30:00.001Z",
+      "2026-04-24T19:30:00.002Z",
+      "2026-04-24T19:30:00.003Z",
+      "2026-04-24T19:30:00.004Z",
+      "2026-04-24T19:30:00.005Z"
     ],
     "channel": [
       "cgp:/root/ops/full-memory-convolve",
@@ -1723,14 +1681,6 @@ block as one expression in the compound formula.
       "cgp:/root/ops/classify-stability",
       "cgp:/root/ops/lambda-project",
       "cgp:/root/ops/fingerprint"
-    ],
-    "timestamp": [
-      "2026-04-24T19:30:00.000Z",
-      "2026-04-24T19:30:00.001Z",
-      "2026-04-24T19:30:00.002Z",
-      "2026-04-24T19:30:00.003Z",
-      "2026-04-24T19:30:00.004Z",
-      "2026-04-24T19:30:00.005Z"
     ],
     "key": [
       "operands",
@@ -1959,8 +1909,8 @@ table.
 | | Element side (HTML) | URL side (protocol) |
 |---|---|---|
 | **Type path** (what kind of thing) | Element name segments: `cgp-{syntax}-{library}-{component}` | URL kind prefixes: `cgp:/s/.../o/.../c/...` |
-| **Instance path** (which specific one) | Attributes: `cgp-system-id`, `cgp-observatron-id`, channel name from leaf | URL instance values: `cgp:/s/0/o/0/c/drag-and-drop` |
-| **Example** | `<cgp-html-forms-drag-and-drop cgp-system-id="0" cgp-observatron-id="0">` | `cgp:/s/0/o/0/c/drag-and-drop` |
+| **Instance path** (which specific one) | Attributes: `cgp-system-id`, `cgp-observatron-id`, channel name from leaf | URL instance values: `cgp:/s/0/o/1/c/drag-and-drop` |
+| **Example** | `<cgp-html-forms-drag-and-drop cgp-system-id="0" cgp-observatron-id="1">` | `cgp:/s/0/o/1/c/drag-and-drop` |
 | **Composes** | Hierarchically, left to right, narrowing | Hierarchically, left to right, narrowing |
 | **Globally unique** | Yes — element type names must not collide across implementations | Yes — URLs are the protocol's identity |
 
@@ -2007,8 +1957,8 @@ When `cgp-system-id` and `cgp-observatron-id` are absent:
   system ID, the new element joins that system rather than minting a
   second one.
 - **Observatron ID** — the runtime assigns the next available integer
-  within the system. The first observatron on a page is `0`, the
-  second is `1`, and so on.
+  within the system. The first observatron on a page is `1`, the
+  second is `2`, and so on.
 
 ### Explicit assignment
 
@@ -2019,7 +1969,7 @@ backend systems), specify both attributes:
 ```html
 <cgp-html-forms-drag-and-drop
     cgp-system-id="0"
-    cgp-observatron-id="0"
+    cgp-observatron-id="1"
     cgp-target="#my-elem">
   <div id="my-elem" />
 </cgp-html-forms-drag-and-drop>
@@ -2044,13 +1994,13 @@ mints:
 
 ```
 cgp:/s/0
-cgp:/s/0/o/0
+cgp:/s/0/o/1
 ```
 
 A second auto-assigned observatron on the same page mints:
 
 ```
-cgp:/s/0/o/1
+cgp:/s/0/o/2
 ```
 
 The auto-assignment is internal bookkeeping; the protocol's URL
@@ -2067,7 +2017,7 @@ CGP elements.
 
 ### Nesting lives in the URL, not in the DOM
 
-The URL `cgp:/s/0/o/0/c/state-change/0/a/0/p/0` is itself a nested
+The URL `cgp:/s/0/o/1/c/state-change/0/a/0/p/0` is itself a nested
 path — system contains observatron contains channel contains event
 contains anchor contains path. That hierarchy is generated by the
 runtime from events crossing the boundary, not by DOM nesting of
@@ -2110,6 +2060,11 @@ For implementers, the rules above resolve to four invariants:
 
 These four invariants are what make "same shape at every scale"
 operational rather than aspirational.
+
+
+
+----
+
 
 
 

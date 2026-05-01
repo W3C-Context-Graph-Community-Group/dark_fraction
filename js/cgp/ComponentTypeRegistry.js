@@ -1,15 +1,29 @@
 // ComponentTypeRegistry.js — loads and indexes CGP component type definitions
 
 export class ComponentTypeRegistry {
-  constructor() {
+  constructor({ resolver } = {}) {
     this._types = new Map(); // url → type JSON object
+    this._resolver = resolver || null;
   }
 
   async load(baseHref) {
+    // If resolver is available, index cgp:/core/* entries from it
+    if (this._resolver) {
+      for (const url of this._resolver.urls()) {
+        if (url.startsWith('cgp:/core/')) {
+          const def = this._resolver.resolve(url);
+          if (def && def.url) {
+            this._types.set(def.url, def);
+          }
+        }
+      }
+      return;
+    }
+
+    // Fallback: fetch with updated path
     const base = baseHref || '';
-    // MVP: single hardcoded path
     const paths = [
-      'components/core/html/forms/drag-and-drop.json'
+      'cgp/core/html/forms/drag-and-drop.json'
     ];
 
     for (const path of paths) {
@@ -27,10 +41,16 @@ export class ComponentTypeRegistry {
   }
 
   get(typeUrl) {
+    if (this._resolver && this._resolver.has(typeUrl)) {
+      return this._resolver.resolve(typeUrl);
+    }
     return this._types.get(typeUrl);
   }
 
   has(typeUrl) {
+    if (this._resolver && this._resolver.has(typeUrl)) {
+      return true;
+    }
     return this._types.has(typeUrl);
   }
 
