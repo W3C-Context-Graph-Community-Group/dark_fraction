@@ -44,9 +44,9 @@ export class UrlManager {
 
 function emptyFacets() {
   return {
-    "/data":      {},
+    "/data":      null,
     "/meaning":   { "symbol": [], "meaning": [] },
-    "/structure": { "constraint-key": [], "constraint-value": [] },
+    "/structure": null,
     "/context":   { "anchor": [], "source": [], "channel": [], "timestamp": [], "key": [], "value": [] }
   };
 }
@@ -82,19 +82,15 @@ export function createObservatron({ systemId, observatronId, urlManager, resolve
   const systemFacets = emptyFacets();
   systemFacets["/meaning"].symbol = [systemUrl];
   systemFacets["/meaning"].meaning = ["user system"];
-  systemFacets["/structure"]["constraint-key"] = ["kind"];
-  systemFacets["/structure"]["constraint-value"] = ["system"];
   writeFacets(systemUrl, systemFacets);
-  appendContext({ url: systemUrl, channel: "cgp:/root/events/observatron/system-instantiated", key: "systemId", value: systemId });
+  appendContext({ url: systemUrl, channel: "cgp:/root/events/observatron/activated", key: "systemId", value: systemId });
 
   // --- Initialize observatron node ---
   const obsFacets = emptyFacets();
   obsFacets["/meaning"].symbol = [observatronUrl];
   obsFacets["/meaning"].meaning = ["observatron"];
-  obsFacets["/structure"]["constraint-key"] = ["kind"];
-  obsFacets["/structure"]["constraint-value"] = ["observatron"];
   writeFacets(observatronUrl, obsFacets);
-  appendContext({ url: observatronUrl, channel: "cgp:/root/events/observatron/observatron-bound", key: "observatronId", value: observatronId });
+  appendContext({ url: observatronUrl, channel: "cgp:/root/events/observatron/activated", key: "observatronId", value: observatronId });
 
   // --- Public API ---
   function mintEvent({ channel }) {
@@ -102,8 +98,6 @@ export function createObservatron({ systemId, observatronId, urlManager, resolve
     const facets = emptyFacets();
     facets["/meaning"].symbol = [eventUrl];
     facets["/meaning"].meaning = [channel];
-    facets["/structure"]["constraint-key"] = ["kind"];
-    facets["/structure"]["constraint-value"] = ["event"];
     writeFacets(eventUrl, facets);
     appendContext({ url: eventUrl, channel: "cgp:/root/events/observatron/event-fired", key: "trigger", value: "drop" });
     return eventUrl;
@@ -115,8 +109,7 @@ export function createObservatron({ systemId, observatronId, urlManager, resolve
     facets["/data"] = { value: [content] };
     facets["/meaning"].symbol = [anchorUrl];
     facets["/meaning"].meaning = [filename];
-    facets["/structure"]["constraint-key"] = ["kind", "format", "bytes", "rows"];
-    facets["/structure"]["constraint-value"] = ["anchor", "csv", bytes, rows];
+    facets["/structure"] = { "constraint-key": ["format", "bytes", "rows"], "constraint-value": ["csv", bytes, rows] };
     writeFacets(anchorUrl, facets);
     appendContext({ url: anchorUrl, channel: "cgp:/root/events/observatron/anchor-minted", key: "filename", value: filename });
     return anchorUrl;
@@ -128,8 +121,7 @@ export function createObservatron({ systemId, observatronId, urlManager, resolve
     facets["/data"] = { value: values };
     facets["/meaning"].symbol = [pathUrl];
     facets["/meaning"].meaning = [header];
-    facets["/structure"]["constraint-key"] = ["type", "columnIndex"];
-    facets["/structure"]["constraint-value"] = ["string", columnIndex];
+    facets["/structure"] = { "constraint-key": ["type", "columnIndex"], "constraint-value": ["string", columnIndex] };
     writeFacets(pathUrl, facets);
     appendContext({ url: pathUrl, channel: "cgp:/root/events/observatron/path-minted", key: "header", value: header });
     return pathUrl;

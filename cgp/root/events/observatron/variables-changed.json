@@ -1,35 +1,12 @@
 {
   "url": "cgp:/root/events/observatron/variables-changed",
   "facets": {
-    "/data": {},
+    "/data": null,
     "/meaning": {
       "symbol": ["cgp:/root/events/observatron/variables-changed"],
       "meaning": ["Fired when boundary variables change for a calculator observatron. Payload includes an array of variable objects, each with name, facets, and facetValues."]
     },
-    "/structure": {
-      "constraint-key": [
-        "type",
-        "required",
-        "properties.event.type",
-        "properties.event.const",
-        "properties.data.type",
-        "properties.data.properties.variables.type",
-        "properties.data.properties.variables.items.properties.name.type",
-        "properties.data.properties.variables.items.properties.facets.type",
-        "properties.data.properties.variables.items.properties.facetValues.type"
-      ],
-      "constraint-value": [
-        "object",
-        "[event, data]",
-        "string",
-        "cgp:/root/events/observatron/variables-changed",
-        "object",
-        "array",
-        "string",
-        "array",
-        "array"
-      ]
-    },
+    "/structure": null,
     "/context": {
       "anchor": [],
       "source": [],

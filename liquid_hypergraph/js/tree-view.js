@@ -6,6 +6,7 @@ export class CgpTreeView {
     this._container = container;
     this._selectedUrl = null;
     this._expansionState = new Set();
+    this._knownKeys = new Set();
   }
 
   render() {
@@ -232,20 +233,25 @@ export class CgpTreeView {
     this._expansionState = new Set();
     const details = this._container.querySelectorAll('details[data-key]');
     for (const d of details) {
+      const key = d.getAttribute('data-key');
+      this._knownKeys.add(key);
       if (d.open) {
-        this._expansionState.add(d.getAttribute('data-key'));
+        this._expansionState.add(key);
       }
     }
   }
 
   _restoreExpansionState() {
-    if (this._expansionState.size === 0) return;
     const details = this._container.querySelectorAll('details[data-key]');
     for (const d of details) {
       const key = d.getAttribute('data-key');
       if (this._expansionState.has(key)) {
         d.open = true;
+      } else if (key.startsWith('branch-user') && !this._knownKeys.has(key)) {
+        // New user system node — auto-expand so CSV drops reveal the full tree
+        d.open = true;
       }
+      this._knownKeys.add(key);
     }
   }
 }

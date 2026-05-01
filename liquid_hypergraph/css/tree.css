@@ -48,6 +48,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   transition: background 0.1s;
+  text-transform: none;
 }
 .lh-tree__node:hover {
   background: #f0f0f0;
@@ -85,13 +86,13 @@
   border-radius: 3px;
   flex-shrink: 0;
 }
-.lh-tree__badge--system      { background: rgba(245,158,11,0.15); color: #F59E0B; }
-.lh-tree__badge--observatron { background: rgba(78,205,196,0.15); color: #4ECDC4; }
-.lh-tree__badge--event       { background: rgba(137,180,250,0.15); color: #89b4fa; }
-.lh-tree__badge--anchor      { background: rgba(167,139,250,0.15); color: #a78bfa; }
-.lh-tree__badge--path        { background: rgba(52,211,153,0.15); color: #34d399; }
-.lh-tree__badge--protocol    { background: rgba(108,112,134,0.15); color: #6c7086; }
-.lh-tree__badge--component   { background: rgba(250,179,135,0.15); color: #fab387; }
+.lh-tree__badge--system      { background: rgba(245,158,11,0.15); color: #333; }
+.lh-tree__badge--observatron { background: rgba(78,205,196,0.15); color: #333; }
+.lh-tree__badge--event       { background: rgba(137,180,250,0.15); color: #333; }
+.lh-tree__badge--anchor      { background: rgba(167,139,250,0.15); color: #333; }
+.lh-tree__badge--path        { background: rgba(52,211,153,0.15); color: #333; }
+.lh-tree__badge--protocol    { background: rgba(108,112,134,0.15); color: #333; }
+.lh-tree__badge--component   { background: rgba(250,179,135,0.15); color: #333; }
 
 /* Node label text */
 .lh-tree__label {

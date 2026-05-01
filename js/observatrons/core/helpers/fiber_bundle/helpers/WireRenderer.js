@@ -8,6 +8,7 @@ export const WIRE_TYPES = [
   { type: 'timestamp', color: 0xf5a623, label: 'Timestamp'  },
   { type: 'key',       color: 0xe74c3c, label: 'Key'        },
   { type: 'value',     color: 0xc084fc, label: 'Value'      },
+  { type: 'anchor',    color: 0x00bcd4, label: 'Anchor'     },
 ];
 
 export class WireRenderer {
@@ -63,7 +64,7 @@ export class WireRenderer {
   }
 
   _buildLoop() {
-    const theta = this._slotIndex * (2 * Math.PI / 5);
+    const theta = this._slotIndex * (2 * Math.PI / WIRE_TYPES.length);
 
     // Radial direction at plug point (in ring-local frame, ring lies in XY)
     const radialDir = new THREE.Vector3(Math.cos(theta), Math.sin(theta), 0);
@@ -104,7 +105,7 @@ export class WireRenderer {
   }
 
   _buildBridge() {
-    const theta = this._slotIndex * (2 * Math.PI / 5);
+    const theta = this._slotIndex * (2 * Math.PI / WIRE_TYPES.length);
 
     // Plug A on source ring
     const radialA = new THREE.Vector3(Math.cos(theta), Math.sin(theta), 0);

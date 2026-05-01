@@ -1,0 +1,19 @@
+{
+  "url": "cgp:/root/events/observatron/activated",
+  "facets": {
+    "/data": null,
+    "/meaning": {
+      "symbol": ["cgp:/root/events/observatron/activated"],
+      "meaning": ["Recorded when an observatron is activated at a boundary. Activation is the atomic event of an observatron coming into being — a system spike and observatron spike are both minted with /context rows referencing this channel. Activation is the protocol-level event for the appearance of an observation surface; subsequent events (drops, clicks, typing) fire through their own channels (state-change, etc.) on the activated observatron."]
+    },
+    "/structure": null,
+    "/context": {
+      "anchor": [],
+      "source": [],
+      "channel": [],
+      "timestamp": [],
+      "key": [],
+      "value": []
+    }
+  }
+}

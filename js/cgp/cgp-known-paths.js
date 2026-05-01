@@ -5,5 +5,6 @@
 
 export const CGP_KNOWN_PATHS = [
   'root/events/observatron/state-change.json',
+  'root/events/observatron/activated.json',
   'core/html/forms/drag-and-drop.json'
 ];

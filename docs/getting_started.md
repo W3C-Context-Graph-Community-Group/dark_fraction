@@ -1,4 +1,69 @@
-# Context Graph Protocol — Getting Started Guide
+<!-- # Context Graph Protocol — Getting Started Guide -->
+
+# START DRAFT
+## Spike Shape Rule
+
+A spike is exactly its four facets — `/data`, `/meaning`, `/structure`, `/context`. No other properties exist at the spike's top level. Identity is carried in `/context.anchor[0]`, which is invariant across all rows of the spike's `/context` log. 
+
+There is no separate `url` field; the URL is the spike's anchor, addressable through the four-facet contract.
+
+The `/data` facet is what crossed the threshold, the payload, of a message across a boundary, and is what projects the other three facets.
+
+When spikes are stored in a flat URL-keyed map (as in the runtime's state object), the URL is the *map key*; inside the value, only the four facets exist. Any JSON that places the URL at the spike's top level violates this rule.
+
+Every JSON example in this doc and every runtime emission must conform to the rule by inspection.
+
+**Observatron Nodes**
+- Every spike is available in raw JSON.
+- Observatrons contribute instances to the graph, the spikes on them have 4 facets each
+- Dark Uncertainty measure guarantees
+
+**Vocabulary**
+- Vocabulary only have meaning and context, not structure or data, and with 2 facets, are not counted as dark uncertainty.
+- Pointers to external resources.
+
+Example:
+
+
+```json
+{
+  "/data": null,
+  "/meaning": {
+    "symbol": [
+      "description",
+      "implementation",
+      "canonical-html",
+      "documentation"
+    ],
+    "meaning": [
+      "Wraps a drop-target element and observes file-drop interactions.",
+      "/components/drag-and-drop.js",
+      "/components/drag-and-drop/canonical.html",
+      "/docs/components/drag-and-drop.md"
+    ]
+  },
+  "/structure": null,
+  "/context": {
+    "anchor":    ["cgp:/b/html/forms/drag-and-drop"],
+    "source":    ["cgp:/p"],
+    "channel":   ["cgp:/p/events/protocol/component-defined"],
+    "timestamp": ["2026-04-30T22:00:00.000Z"],
+    "key":       ["version"],
+    "value":     ["1.0.0"]
+  }
+}
+
+
+```
+
+**Protocol**
+
+
+# END DRAFT
+
+
+START IN PROGRESS
+-----
 
 When you hand an AI agent "2026-01-15" in a Date field, the agent makes assumptions.
 
@@ -9,6 +74,70 @@ Those assumptions drive the output. They determine whether the answer is right o
 Without a shared coordinate system, you can't even tell there's something to measure. The dark assumptions stay dark because there's no geometry to locate them in.
 
 We call the fraction of assumptions that are operating without being named **Dark Uncertainty**. It is computable, reducible, and — crucially — a prerequisite for anything else.
+
+### The Payload Principle
+```/structure``` declares constraints on ```/data```. If ```/data``` is null — no payload, never will be — then there's nothing to constrain. ```/structure``` should also be ```null```. 
+
+/data: null (no payload)
+/structure: null (nothing to constrain)
+/meaning: {...} (carries the description of what this definition is — that's /meaning's job, not /structure's)
+/context: {...} (carries the provenance row)
+
+ If ```/data``` carries ```{value: [...]}``` (a payload), ```/structure``` carries the constraints that payload satisfies.
+
+### Four Facet Pairs
+
+- ```/data``` and ```/structure``` are the payload pair — what's transmitted, and what constrains it. Both null or both populated.
+
+- ```/meaning``` and ```/context``` are the descriptive pair — what this spike refers to, and the history of what's happened to it. Always populated.
+
+### The Dark Fraction Requirement
+
+Dark fraction requires three facets. If a spike doesn't have all three, dark fraction doesn't apply.
+
+
+### Vocabulary and Graph: Two Zones of the Protocol
+
+The Context Graph Protocol has two address spaces, with two different roles.
+
+**Vocabulary** lives at `cgp:/root/...` and `cgp:/core/...`. This is the protocol's shared language — the channel definitions, component definitions, formulas, and operations that every CGP-conformant implementation agrees exists. The vocabulary is part of the protocol's specification. It's authored by humans, committed to git, and shared across implementations.
+
+`root` is vocabulary for the protocol itself.
+
+`core` has the following reserved namespaces in the vocabulary:
+
+**pattern**
+
+`cgp:/core/<language>/...` is the catalog of language-native bindings. 
+
+The following languages can be extended in the following way:
+- `cgp:/core/html/...` covers HTML wrappers. 
+- `cgp:/core/python/...` covers Python primitives. 
+- `cgp:/core/sql/...` covers SQL slot bindings. Each language gets its own namespace under core because the environment is what determines what bindings are needed. Most CGP applications won't need anything outside core for their host language.
+
+**Graph** lives at `cgp:/s/...`. This is the runtime data — observatrons stationed at boundaries and the spikes they generate as they observe. The graph is what an application produces when it runs. It's the thing an auditor reviews, a regulator inspects, and the protocol measures with dark fraction.
+
+The four-facet structure (`/data`, `/meaning`, `/structure`, `/context`) describes both zones, but does different work in each. In *vocabulary*, facets describe what something **is** — the description of a channel, the canonical form of a component, the type signature of a formula. In *graph*, facets record what was **observed** — the message transmitted at a boundary, the constraints it satisfied, the history of events accumulating on a node.
+
+An observatron in the graph references vocabulary by URL (it knows "I'm an instance of `cgp:/core/html/forms/drag-and-drop`") but the vocabulary entry itself isn't part of the user's graph. A deployed application ships with the vocabulary it uses — the few components it actually instantiates — but the *graph* the application produces contains only its own observatrons and spikes. Vocabulary is shared infrastructure; graph is per-deployment runtime data.
+
+This separation matters for two reasons.
+
+First, it clarifies what a deployment *is*: the runtime graph, not the catalog. A bank shipping CGP for trade-document audit ships its observatrons and the spikes they generate — not the entire library of components that exist in the protocol's vocabulary. The vocabulary is what makes the deployment *possible*; the graph is what the deployment *produces*.
+
+Second, it clarifies what dark fraction measures: coverage of *observation* at runtime, not coverage of vocabulary entries. δ requires payload to compute; vocabulary entries don't carry payload, so δ doesn't apply to them. Vocabulary is described; graph is observed.
+
+The getting started node example is an example of infrastructure management, which is also not part of the graph.
+
+- The ```/core``` vocabulary is for pointers to core out-of-the-box code a Context Graph needs, and may be implemented in any language. They are pointers to the ```"source"```, ```"src"```, ```filesystem```, ```URL```, ```URI```, etc, **not the code itself**. 
+
+- ```/core``` documents the pointer to the code, not the code itself. The component definition's ```/meaning``` carries a URL or filesystem path naming where the implementation lives. The actual JavaScript file lives on disk (or eventually at a content-addressed URL).This keeps vocabulary entries small, declarative, and reviewable. A contributor reading the catalog sees what the component is and where to find its code; they don't have to scroll through implementation in a definition file. The code lives in its own file, addressable by path, evolvable on its own version timeline.
+
+- A "spike" requires an observatron for it to exist. "cgp-html-forms-drag-and-drop.js lives in the repo. The component definition's /meaning includes an implementation symbol pointing at the file path: /cgp-html-forms-drag-and-drop.js (or ./components/drag-and-drop.js — whatever your repo structure is)." Spikes "live on" observatrons, where an observatron is defined as a node in a runtime graph at ```cgp:/s/...``` Four facets, dark-fraction-measurable, the observatron is instantiated by its environment, and application.
+
+
+END
+---
 
 ## Important Information 
 Please read the following, it is an important principle to understand.
@@ -24,6 +153,10 @@ In CGP, the **URL is the identity**. When one part of the graph refers to anothe
 These aren't three different things with a mapping between them. They're one thing (the URL) described from three perspectives: *what you write down*, *what you point at*, *what you receive*. The URL is always the same URL; only the direction changes.
 
 This is why the `/data` facet exists: it is the **instance accessor**. Asking "what is at this URL?" is the same as asking "what is this URL's `/data`?" The other three facets (`/meaning`, `/structure`, `/context`) describe how to interpret the instance.
+
+
+
+
 
 ### Examples:
 
@@ -85,14 +218,176 @@ arrays as values.
 Row N of the facet is element N of every column. **Invariant:** all arrays 
 inside one facet have equal length.
 
-An empty facet declares its schema with empty arrays:
+When a facet has no rows, its columns are still named — but the facet itself follows the payload principle. `/data` and `/structure` are `null` when there's no payload. `/meaning` and `/context` always carry content (at minimum, the spike's identity row in `/meaning` and one provenance row in `/context`).
 
-    "/context": { "anchor": [], "source": [], "channel": [], "timestamp": [], "key": [], "value": [] }
+# TEST
+---
+## Three Namespaces: /p, /b, /s
 
-Append a row by pushing one element onto every column in lockstep. The 
-runtime's `appendContext` helper enforces the invariant; direct mutation 
-outside the helper is a bug.
+The Context Graph Protocol uses three top-level namespaces, each one letter, each with a distinct role:
 
+| Namespace | Role | Example |
+|---|---|---|
+| `cgp:/p/...` | **Protocol** — protocol definitions: channels, formulas, operations, meta-vocabulary. The protocol's own self-description. | `cgp:/p/events/observatron/activated` |
+| `cgp:/b/...` | **Bindings** — the interaction layer. Language-native, framework-native, or environment-native bindings that plug CGP into a concrete surface. | `cgp:/b/html/forms/drag-and-drop` |
+| `cgp:/s/...` | **System** — the runtime graph. Observatrons stationed at boundaries and the spikes they generate as they observe. | `cgp:/s/0/o/0/c/state-change/0/a/0/p/0` |
+
+Three letters: `p`, `b`, `s`. Protocol, Binding, System.
+
+### What lives in /p
+
+`cgp:/p/...` is the protocol's own definitions — the language every CGP-conformant implementation agrees exists. Channels are at `cgp:/p/events/...`. Formulas are at `cgp:/p/formulas/...`. Operations are at `cgp:/p/ops/...`. Meta-vocabulary (definitions of definitions) lives here too.
+
+The protocol's self-description follows the four-facet structure for cataloging uniformity, but it's pointer-only for resources: identity inline, substantive content (proofs, full prose specs, reference implementations) external and referenced by pointer.
+
+### What lives in /b
+
+`cgp:/b/<environment>|<library>|<component>` is the catalog of bindings — the implementation layer that connects CGP to a concrete environment.
+
+Environment can be a language (`html`, `python`, `sql`, `markdown`), a framework (`react`, `django`), a database engine (`postgres`, `sqlite`), a messaging protocol (`mqtt`, `kafka`), or any other concrete surface where CGP needs to interact.
+
+Examples:
+
+- `cgp:/b/html/forms/drag-and-drop` — HTML wrapper for file drops
+- `cgp:/b/python/dataframes/csv-reader` — Python primitive for reading CSVs
+- `cgp:/b/sql/slots/query-target` — SQL slot binding for query parameters
+- `cgp:/b/react/hooks/use-observatron` — React hook for observatron lifecycle
+
+Most CGP applications won't need anything outside `/b/<their-environment>/...` for their host environment. A pure-HTML application reaches into `cgp:/b/html/...`; a pure-Python application reaches into `cgp:/b/python/...`.
+
+Bindings follow the four-facet structure for cataloging uniformity, but like `/p`, they're pointer-only for resources: a component definition's `/meaning` carries the component's identity inline and points at the implementation file, documentation, and canonical example externally.
+
+### What lives in /s
+
+`cgp:/s/...` is the runtime graph — the actual observations a deployment produces. Observatrons live at `cgp:/s/<system>/o/<observatron>`. Spikes (events, anchors, paths) live at deeper URLs: `cgp:/s/<system>/o/<observatron>/c/<channel>/<event-n>/a/<anchor>/p/<path>`.
+
+The runtime carries actual payload — what crossed the boundary, raw. An anchor spike's `/data` holds the dropped file's content; a path spike's `/data` holds the column's values. No pointers in runtime spikes (unless a deployment explicitly chooses to use them for very large payloads): the message is the data, not a reference to it.
+
+The runtime graph is what an application produces, what an auditor reviews, and what dark fraction measures.
+
+## Identity Inline, Resources External
+
+A vocabulary entry's `/meaning` facet carries two kinds of content:
+
+**Identity** — small declarative content that names what the entry is:
+- The URL the entry represents
+- A short description (one or two sentences)
+- Labels and tags
+- Type signatures (for formulas and operations)
+
+**Resources** — substantive artifacts:
+- Implementation code
+- Full documentation
+- Canonical HTML or syntax examples
+- Schemas
+- Test suites
+- Long-form prose specs
+
+The rule: **identity stays inline in `/meaning`; resources live in external files and are referenced from `/meaning` by pointer** (path or URL).
+
+### Why
+
+Vocabulary entries are *catalog entries*, not bundled implementations. Keeping them pointer-only for resources keeps the catalog:
+
+- *Small* — entries are easy to read and review
+- *Language-neutral* — a Python implementation reads the same catalog as a JavaScript implementation; the pointers resolve differently per environment
+- *Versionable* — implementations evolve on their own version timeline; the catalog entry's pointer can be updated when a new version ships
+- *Composable* — the same catalog entry can be referenced from multiple bindings or surfaces
+
+### Example: a component definition
+
+A component binding entry at `cgp:/b/html/forms/drag-and-drop`:
+
+```json
+
+```
+
+Identity (inline): the URL, the short description, the labels.
+
+Resources (referenced): the implementation file, the documentation file, the canonical HTML file. Each lives on disk at its own path; `/meaning` carries the pointer.
+
+A reader of the catalog entry sees what the component is at a glance. To dig deeper — to read the code, read the docs, read the canonical example — they follow the pointer to the file. The catalog stays declarative; the substantive content lives where it belongs.
+
+## The Protocol Contract
+
+The runtime graph at `cgp:/s/...` is the *protocol contract*. Observatrons emit four-facet spikes recording observations at boundaries. Conformant implementations agree on this layer.
+
+`cgp:/p/...` and `cgp:/b/...` are *protocol design infrastructure*. Different communities may organize them differently — different sub-folders inside `/p/`, different binding libraries under `/b/<environment>/...` — as long as the runtime graphs they produce remain conformant.
+
+The runtime is what's guaranteed. Everything else is convention.
+
+---
+
+## Vocabulary Entry Contract
+
+Every vocabulary entry's `/meaning` facet must include a known set of required symbol/meaning pairs, by kind. This is the contract: a reader or runtime can rely on these symbols being present.
+
+### Channel Definitions (`cgp:/p/events/...`)
+
+Required:
+- `description` — prose description of what events on this channel represent
+- `payload-shape` — what kind of payload events carry (or `none` if events are payload-less)
+
+### Component Definitions (`cgp:/b/<environment>/...`)
+
+Required:
+- `description` — prose description of what the component does
+- `implementation` — pointer (filesystem path or URL) to the implementation file
+- `canonical-html` — pointer to the canonical HTML example file
+
+Recommended:
+- `documentation` — pointer to longer prose documentation
+
+### Formula Definitions (`cgp:/p/formulas/...`)
+
+Required:
+- `description` — prose description of what the formula computes
+- `expression` — the formula in Unicode math (canonical form)
+- `signature` — type signature (inputs and outputs)
+
+### Operation Definitions (`cgp:/p/ops/...`)
+
+Required:
+- `description` — prose description of the operation
+- `signature` — operand types and result type
+
+### Why a Contract
+
+Without a contract, two catalog entries of the same kind can have arbitrarily different `/meaning` shapes. The contract makes vocabulary entries *predictable*: a runtime loading components knows exactly where to find the implementation pointer; a reader scanning the catalog sees the same labeled rows in the same order across every entry. Vocabulary stays small and reviewable because the shape is fixed.
+
+### Example: a Component Definition
+
+```json
+{
+  "/data": null,
+  "/meaning": {
+    "symbol": [
+      "description",
+      "implementation",
+      "canonical-html",
+      "documentation"
+    ],
+    "meaning": [
+      "Wraps a drop-target element and observes file-drop interactions.",
+      "/components/drag-and-drop.js",
+      "/components/drag-and-drop/canonical.html",
+      "/docs/components/drag-and-drop.md"
+    ]
+  },
+  "/structure": null,
+  "/context": {
+    "anchor":    ["cgp:/b/html/forms/drag-and-drop"],
+    "source":    ["cgp:/p"],
+    "channel":   ["cgp:/p/events/protocol/component-defined"],
+    "timestamp": ["2026-04-30T22:00:00.000Z"],
+    "key":       ["version"],
+    "value":     ["1.0.0"]
+  }
+}
+```
+
+Four labeled rows in `/meaning`, in the contract order. Any other component definition has the same four labels (with optional documentation), in the same order. Predictable, simple, practical.
+----
 
 ## Step 2 — Score Dark Uncertainty in Real-Time (δ → "Dark Fraction Score")
 
@@ -369,7 +664,7 @@ Here's `cgp:/s/0` — the system node — encoded as a four-facet model:
       "/context": {
         "anchor":    ["cgp:/s/0"],
         "source":    ["cgp:/s/0/o/0"],
-        "channel":   ["cgp:/root/events/observatron/system-instantiated"],
+        "channel":   ["cgp:/root/events/observatron/activated"],
         "timestamp": ["2026-04-24T18:30:00.123Z"],
         "key":       ["systemId"],
         "value":     ["0"]
@@ -599,9 +894,8 @@ function createObservatron({ systemId, observatronId, urlManager }) {
   //   getState() → deep clone of the flat facet store
   //   dispatchStateChange() → fires 'cgp-state-change' with { event, state }
   //
-  // On construction, writes facets for the system and observatron nodes.
-  // System's /context gets one row: channel='cgp:/root/events/observatron/system-instantiated'.
-  // Observatron's /context gets one row: channel='cgp:/root/events/observatron/observatron-bound'.
+  // On activation, writes facets for the system and observatron nodes.
+  // Both spikes get one /context row each: channel='cgp:/root/events/observatron/activated'.
 }
 ```
 
@@ -846,7 +1140,7 @@ The right panel (state display) shows a JSON object with exactly two entries:
     "/context": {
       "anchor":    ["cgp:/s/0"],
       "source":    ["cgp:/s/0/o/0"],
-      "channel":   ["cgp:/root/events/observatron/system-instantiated"],
+      "channel":   ["cgp:/root/events/observatron/activated"],
       "timestamp": ["<ISO-8601-UTC-ms>"],
       "key":       ["systemId"],
       "value":     ["0"]
@@ -865,7 +1159,7 @@ The right panel (state display) shows a JSON object with exactly two entries:
     "/context": {
       "anchor":    ["cgp:/s/0/o/0"],
       "source":    ["cgp:/s/0/o/0"],
-      "channel":   ["cgp:/root/events/observatron/observatron-bound"],
+      "channel":   ["cgp:/root/events/observatron/activated"],
       "timestamp": ["<ISO-8601-UTC-ms>"],
       "key":       ["observatronId"],
       "value":     ["0"]
