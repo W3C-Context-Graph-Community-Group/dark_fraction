@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cgp:/root/events/observatron/state-change",
+  "title": "State Change Event Payload",
+  "description": "Full URL-keyed facet store at the moment of emission.",
+  "type": "object",
+  "additionalProperties": {
+    "$ref": "#/$defs/facetNode"
+  },
+  "$defs": {
+    "facetNode": {
+      "type": "object",
+      "required": ["/data", "/meaning", "/structure", "/context"],
+      "additionalProperties": false,
+      "properties": {
+        "/data": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "properties": {
+                "value": { "type": "array", "items": { "type": "string" } }
+              }
+            }
+          ]
+        },
+        "/meaning": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "required": ["symbol", "meaning"],
+              "properties": {
+                "symbol":  { "type": "array", "items": { "type": "string" } },
+                "meaning": { "type": "array", "items": { "type": "string" } }
+              }
+            }
+          ]
+        },
+        "/structure": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "properties": {
+                "constraint-key":   { "type": "array", "items": { "type": "string" } },
+                "constraint-value": { "type": "array" }
+              }
+            }
+          ]
+        },
+        "/context": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "required": ["anchor", "source", "channel", "timestamp", "key", "value"],
+              "properties": {
+                "anchor":    { "type": "array", "items": { "type": "string" } },
+                "source":    { "type": "array", "items": { "type": "string" } },
+                "channel":   { "type": "array", "items": { "type": "string" } },
+                "timestamp": { "type": "array", "items": { "type": "string" } },
+                "key":       { "type": "array", "items": { "type": "string" } },
+                "value":     { "type": "array", "items": { "type": "string" } }
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

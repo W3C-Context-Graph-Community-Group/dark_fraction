@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cgp:/schemas/claim",
+  "title": "CGPL Canonical Claim",
+  "description": "Every event on the bus is a claim with exactly five fields.",
+  "type": "object",
+  "required": ["claim-id", "claim-source", "timestamp", "key", "value"],
+  "additionalProperties": false,
+  "properties": {
+    "claim-id": {
+      "type": "string",
+      "pattern": "^cgp://"
+    },
+    "claim-source": {
+      "type": "string",
+      "pattern": "^cgp://"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "key": {
+      "type": "string"
+    },
+    "value": {
+      "type": "string"
+    }
+  }
+}

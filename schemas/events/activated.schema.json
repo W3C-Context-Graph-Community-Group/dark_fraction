@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cgp:/root/events/observatron/activated",
+  "title": "Activated Event Payload",
+  "description": "Recorded when an observatron is activated at a boundary. Payload includes the observatron URL and activation context.",
+  "type": "object",
+  "required": ["url", "facets"],
+  "properties": {
+    "url": {
+      "type": "string",
+      "pattern": "^cgp:/"
+    },
+    "facets": {
+      "type": "object",
+      "required": ["/data", "/meaning", "/structure", "/context"],
+      "additionalProperties": false,
+      "properties": {
+        "/data":      { "oneOf": [{ "type": "null" }, { "type": "object" }] },
+        "/meaning":   { "oneOf": [{ "type": "null" }, { "type": "object" }] },
+        "/structure": { "oneOf": [{ "type": "null" }, { "type": "object" }] },
+        "/context": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "required": ["anchor", "source", "channel", "timestamp", "key", "value"],
+              "properties": {
+                "anchor":    { "type": "array", "items": { "type": "string" } },
+                "source":    { "type": "array", "items": { "type": "string" } },
+                "channel":   { "type": "array", "items": { "type": "string" } },
+                "timestamp": { "type": "array", "items": { "type": "string" } },
+                "key":       { "type": "array", "items": { "type": "string" } },
+                "value":     { "type": "array", "items": { "type": "string" } }
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}

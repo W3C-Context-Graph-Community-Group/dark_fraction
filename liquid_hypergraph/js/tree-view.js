@@ -220,8 +220,14 @@ export class CgpTreeView {
     const node = this._container.querySelector(`[data-url="${CSS.escape(url)}"]`);
     if (node) {
       node.classList.add('lh-tree__node--selected');
-      // Expand parent <details> elements
-      let parent = node.closest('details');
+      // Expand ancestor <details> elements to reveal the node.
+      // If the node is a <summary>, skip its own <details> (the user controls that toggle).
+      let parent;
+      if (node.tagName === 'SUMMARY') {
+        parent = node.closest('details')?.parentElement?.closest('details');
+      } else {
+        parent = node.closest('details');
+      }
       while (parent) {
         parent.open = true;
         parent = parent.parentElement?.closest('details');

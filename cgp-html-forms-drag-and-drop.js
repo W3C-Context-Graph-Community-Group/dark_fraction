@@ -3,6 +3,8 @@ import { createObservatron } from './cgp-runtime.js';
 
 const _cgpBroadcast = new BroadcastChannel('cgp-state');
 document.addEventListener('cgp-state-change', (e) => {
+  const urls = Object.keys(e.detail.state || {});
+  console.log('[CGP-BC] Broadcasting cgp-state-change →', urls.length, 'URLs:', urls);
   _cgpBroadcast.postMessage({
     type: 'cgp-state-change',
     event: e.detail.event,

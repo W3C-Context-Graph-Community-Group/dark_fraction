@@ -67,7 +67,6 @@
     { id: 'home',         label: 'Home',         href: '../' },
     { id: '_hr' },
     { id: 'calculator',   label: 'Calculator',   href: '../calculator/' },
-    { id: 'calculator-live', label: 'Dark Fraction (live)', href: '../calculator/active/' },
     { id: 'observatrons', label: 'Observatrons', href: '../observatrons/' },
     { id: 'docs',         label: 'Docs',         href: '../docs/' },
     { id: 'ui-bindings',  label: 'UI Bindings',  href: '../ui-bindings/' },

@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cgp:/root/events/observatron/variables-changed",
+  "title": "Variables Changed Event Payload",
+  "description": "Fired when boundary variables change for a calculator observatron. Payload is an array of variable objects.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["name", "facets", "facetValues"],
+    "properties": {
+      "name": {
+        "type": "string"
+      },
+      "facets": {
+        "type": "object",
+        "required": ["/data", "/meaning", "/structure", "/context"],
+        "properties": {
+          "/data":      { "oneOf": [{ "type": "null" }, { "type": "object" }] },
+          "/meaning":   { "oneOf": [{ "type": "null" }, { "type": "object" }] },
+          "/structure": { "oneOf": [{ "type": "null" }, { "type": "object" }] },
+          "/context":   { "oneOf": [{ "type": "null" }, { "type": "object" }] }
+        }
+      },
+      "facetValues": {
+        "type": "object",
+        "properties": {
+          "/data":      { "oneOf": [{ "type": "null" }, { "type": "string" }] },
+          "/meaning":   { "oneOf": [{ "type": "null" }, { "type": "string" }] },
+          "/structure": { "oneOf": [{ "type": "null" }, { "type": "string" }] },
+          "/context":   { "oneOf": [{ "type": "null" }, { "type": "string" }] }
+        }
+      }
+    }
+  }
+}

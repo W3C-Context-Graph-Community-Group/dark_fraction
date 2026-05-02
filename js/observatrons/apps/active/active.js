@@ -209,19 +209,32 @@ function rebuildMesh(obs) {
  */
 function feedState(obs, state) {
   let hasNew = false;
+  const prefix = observatronUrl + '/';
+  console.log('[ACTIVE feedState] prefix =', JSON.stringify(prefix));
 
   for (const [url, facets] of Object.entries(state)) {
-    if (!url.startsWith(observatronUrl + '/')) continue;
-    if (renderedUrlSet.has(url)) continue;
+    if (!url.startsWith(prefix)) {
+      console.log('[ACTIVE feedState]   SKIP (prefix):', url);
+      continue;
+    }
+    if (renderedUrlSet.has(url)) {
+      console.log('[ACTIVE feedState]   SKIP (already rendered):', url);
+      continue;
+    }
 
     const timestamp = facets?.['/context']?.timestamp?.[0] || '';
     renderedUrlSet.add(url);
     spikeList.push({ url, facets, timestamp });
     hasNew = true;
+    console.log('[ACTIVE feedState]   ADDED spike:', url);
   }
 
-  if (!hasNew) return;
+  if (!hasNew) {
+    console.log('[ACTIVE feedState] No new spikes');
+    return;
+  }
 
+  console.log('[ACTIVE feedState] Rebuilding mesh with', spikeList.length, 'total spikes');
   spikeList.sort((a, b) => (a.timestamp < b.timestamp ? -1 : a.timestamp > b.timestamp ? 1 : 0));
   rebuildMesh(obs);
 }
@@ -236,24 +249,45 @@ obs.colorScheme = scheme;
 // ── BroadcastChannel subscription ─────────────────────────────
 
 const bc = new BroadcastChannel('cgp-state');
+console.log('[ACTIVE] BroadcastChannel "cgp-state" listener registered');
+
 bc.onmessage = (msg) => {
-  if (msg.data?.type !== 'cgp-state-change') return;
+  console.log('[ACTIVE] bc.onmessage fired, msg.data.type =', msg.data?.type);
+
+  if (msg.data?.type !== 'cgp-state-change') {
+    console.log('[ACTIVE] Ignoring — type mismatch');
+    return;
+  }
   const state = msg.data.state;
-  if (!state) return;
+  if (!state) {
+    console.log('[ACTIVE] Ignoring — no state in message');
+    return;
+  }
+
+  const urls = Object.keys(state);
+  console.log('[ACTIVE] Received state with', urls.length, 'URLs:', urls);
 
   if (!activated) {
+    console.log('[ACTIVE] Not yet activated — scanning for activation event...');
     for (const [url, facets] of Object.entries(state)) {
       const ch = facets?.['/context']?.channel;
+      console.log('[ACTIVE]   checking', url, '→ /context.channel =', ch);
       if (!Array.isArray(ch) || !ch.includes(ACTIVATED_CHANNEL)) continue;
       // Recover observatron URL from the activation event's anchor.
       observatronUrl = facets?.['/context']?.anchor?.[0] || url;
+      console.log('[ACTIVE]   ✓ Activation found! observatronUrl =', observatronUrl);
       activated = true;
       break;
     }
-    if (!activated) return;
+    if (!activated) {
+      console.log('[ACTIVE] No activation event found — returning');
+      return;
+    }
+    console.log('[ACTIVE] Calling rebuildMesh (empty sphere)');
     rebuildMesh(obs); // show empty sphere
   }
 
+  console.log('[ACTIVE] Calling feedState, observatronUrl =', observatronUrl);
   feedState(obs, state);
 };
 
