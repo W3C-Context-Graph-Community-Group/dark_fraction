@@ -93,6 +93,14 @@ The schemas encode every rule defined in the Four Facet Model section above. If 
 
 ## Four Facet Model
 
+The atomic unit on the graph is the `observatron`. `Spikes` live under observatrons. A system is the bounding box that observatrons live in — a namespace, not an observed thing.
+
+When you instantiate the runtime, what you're actually instantiating is an observatron. 
+
+**On systems.** A system (`cgp:/s/<id>`) is the bounding box an observatron lives in — a namespace, not an entry. Systems do not have facets; they are not minted by a boundary-crossing of their own. The system comes into being implicitly as the scope of its observatrons. Only observatrons and spikes are entries on the graph.
+
+**On spikes.** A spike does not have a boundary independent of its observatron. The observatron's watched interface is the boundary; what crosses it produces a spike under that observatron. Spikes are always downstream of observatrons.
+
 ### Coupling Rule
 
 An entry on the Context Graph (spike or observatron) exists if and only if a payload has crossed a boundary to bring it into being.
@@ -110,8 +118,6 @@ When an entry exists, all four facets are present. The shape is:
 | `/context` | columnar table with six columns; first two rows record the task and the component-type under which the entry was created |
 
 There is no state in which an entry exists with `null` facets. If the facets would be null, the entry does not exist.
-
-Systems (`cgp:/s/<id>`) are runtime scope, not entries on the graph. Only observatrons and spikes are entries.
 
 ---
 
@@ -450,3 +456,10 @@ The attribute set crosses the boundary verbatim and becomes the observatron's `/
 
 The `cgp-intent` value is the literal HTML attribute string, not a parsed object.
 
+### The `cgp-id` Stamping Model
+
+Any HTML element with a `cgp-id` attribute is a CGP element. The runtime queries the DOM for `[cgp-id]`, reads each element's `cgp-id` URL to determine what kind of component it is, and instantiates the corresponding observatron.
+
+The element's tag (`<div>`, `<span>`, `<canvas>`, etc.) is the implementer's choice — pick whatever fits semantically. The CGP identity is carried entirely by the `cgp-id` attribute, not by the tag name. This makes the protocol tag-agnostic: a CGP component can be stamped onto any HTML element.
+
+The URL in `cgp-id` is the canonical name for the component. There is no separate registration step, no custom-element definition, no naming convention to translate. The URL points to the component's reference file (e.g., `cgp:/r/components/html/forms/drag-and-drop.md`); whatever lives at that URL is what the element is.
