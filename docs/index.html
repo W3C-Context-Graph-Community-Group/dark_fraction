@@ -413,18 +413,31 @@ window.addEventListener('hashchange', function () {
 });
 
 /* ─────────────────────────────────────────────────────────
-   Configure your sidebar here:
+   Auto-load all .md files from calculator/r/ via the server API.
+   Files are grouped by their top-level subdirectory.
    ───────────────────────────────────────────────────────── */
+fetch('/api/r-files')
+  .then(function (r) { return r.json(); })
+  .then(function (files) {
+    var groups = {};
+    files.forEach(function (f) {
+      var parts = f.split('/');
+      var section = parts.length > 1 ? parts[0] : null;
+      if (!groups[section]) groups[section] = [];
+      groups[section].push('/calculator/r/' + f);
+    });
 
-DocsLeftColumnManager.setSection(null, [
-  "../calculator/r/meta/schema.md",
-  "../calculator/r/keys/task.md",
-  "../calculator/r/keys/component-type.md",
-  "../calculator/r/tasks/csv-dropped.md",
-  "../calculator/r/components/html/forms/drag-and-drop.md"
-]);
+    Object.keys(groups).forEach(function (section) {
+      DocsLeftColumnManager.setSection(section, groups[section]);
+    });
 
-DocsLeftColumnManager.render();
+    DocsLeftColumnManager.render();
+  })
+  .catch(function (err) {
+    document.getElementById('docs-card').innerHTML =
+      '<p style="color:#c00">Failed to load file list: ' + err.message + '</p>';
+    document.getElementById('docs-card').classList.add('loaded');
+  });
 </script>
 
 <script src="doc-exporter.js"></script>
