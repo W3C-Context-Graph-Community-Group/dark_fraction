@@ -69,9 +69,21 @@
   }
 
   .docs-sidebar__item.active {
-    background: rgba(167, 139, 250, 0.1);
-    color: #7c3aed;
+    background: rgba(59, 130, 246, 0.1);
+    color: #2563eb;
     font-weight: 600;
+  }
+
+  .docs-sidebar__section {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #999;
+    margin: 20px 0 8px;
+    padding: 0 12px;
+    list-style: none;
   }
 
   /* ── Right content area ── */
@@ -131,7 +143,7 @@
   .docs-content__card strong { color: #111; }
 
   .docs-content__card a {
-    color: #7c3aed;
+    color: #2563eb;
     text-decoration: none;
   }
   .docs-content__card a:hover {
@@ -139,12 +151,12 @@
   }
 
   .docs-content__card code {
-    background: #f4f1fe;
+    background: #eff6ff;
     padding: 2px 6px;
     border-radius: 4px;
     font-family: 'JetBrains Mono', monospace;
     font-size: 12.5px;
-    color: #7c3aed;
+    color: #2563eb;
   }
 
   .docs-content__card pre {
@@ -178,10 +190,10 @@
   }
 
   .docs-content__card blockquote {
-    border-left: 3px solid #7c3aed;
+    border-left: 3px solid #2563eb;
     padding: 8px 16px;
     margin: 1em 0;
-    background: #faf8ff;
+    background: #f0f7ff;
     color: #555;
     font-style: italic;
   }
@@ -254,9 +266,9 @@
   }
 
   .docs-export-btn:hover {
-    border-color: #7c3aed;
-    color: #7c3aed;
-    background: #faf8ff;
+    border-color: #2563eb;
+    color: #2563eb;
+    background: #f0f7ff;
   }
 </style>
 </head>
@@ -286,42 +298,43 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html-docx-js/dist/html-docx.js"></script>
 <script>
-(function () {
+/* ─────────────────────────────────────────────────────────
+   DocsLeftColumnManager
+   ─────────────────────────────────────────────────────────
+   Manages the docs sidebar sections and file entries.
+
+   Usage:
+     DocsLeftColumnManager.setSection("General", [
+       "getting_started.md",
+       "event_bus.md",
+       "sidebar.md"
+     ]);
+     DocsLeftColumnManager.setSection("Canonical", [
+       "canonical/tasks.md",
+       "canonical/keys.md"
+     ]);
+     DocsLeftColumnManager.render();          // builds the sidebar & loads first doc
+   ───────────────────────────────────────────────────────── */
+var DocsLeftColumnManager = (function () {
   var listEl = document.getElementById('docs-list');
   var cardEl = document.getElementById('docs-card');
-  var docs = [];
   var activeFile = null;
+  var sections = [];       // ordered list: { name, files[] }
 
-  /* ── Load manifest and build sidebar ── */
-  fetch('_index.json')
-    .then(function (r) { return r.json(); })
-    .then(function (manifest) {
-      docs = manifest;
-      manifest.forEach(function (doc) {
-        var li = document.createElement('li');
-        li.className = 'docs-sidebar__item';
-        li.textContent = doc.title;
-        li.dataset.file = doc.file;
-        li.addEventListener('click', function () { loadDoc(doc.file); });
-        listEl.appendChild(li);
-      });
+  /* ── Derive a display title from a file path ── */
+  function titleFromPath(filePath) {
+    var name = filePath.split('/').pop().replace(/\.md$/i, '');
+    return name
+      .replace(/[-_]/g, ' ')
+      .replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+  }
 
-      /* load from hash or default to first */
-      var hash = window.location.hash.slice(1);
-      var target = manifest.find(function (d) { return d.file === hash; });
-      loadDoc(target ? target.file : manifest[0].file);
-    })
-    .catch(function (err) {
-      cardEl.innerHTML = '<p style="color:#c00">Failed to load docs index: ' + err.message + '</p>';
-      cardEl.classList.add('loaded');
-    });
-
+  /* ── Load & display a markdown file ── */
   function loadDoc(file) {
     if (activeFile === file) return;
     activeFile = file;
     window.location.hash = file;
 
-    /* highlight sidebar */
     var items = listEl.querySelectorAll('.docs-sidebar__item');
     items.forEach(function (el) {
       el.classList.toggle('active', el.dataset.file === file);
@@ -344,12 +357,81 @@
       });
   }
 
-  /* handle back/forward */
-  window.addEventListener('hashchange', function () {
-    var hash = window.location.hash.slice(1);
-    if (hash && hash !== activeFile) loadDoc(hash);
-  });
+  /* ── Public API ── */
+  return {
+    /**
+     * setSection("Section Name", ["path/to/a.md", "path/to/b.md"])
+     * Call once per section, in the order you want them to appear.
+     * If sectionName is null or "", files are added without a header.
+     */
+    setSection: function (sectionName, files) {
+      sections.push({ name: sectionName || null, files: files });
+    },
+
+    /**
+     * render()  — build the sidebar from all registered sections
+     *             and load the doc from the URL hash (or the first file).
+     */
+    render: function () {
+      listEl.innerHTML = '';
+      var firstFile = null;
+
+      sections.forEach(function (sec) {
+        if (sec.name) {
+          var hdr = document.createElement('li');
+          hdr.className = 'docs-sidebar__section';
+          hdr.textContent = sec.name;
+          listEl.appendChild(hdr);
+        }
+
+        sec.files.forEach(function (filePath) {
+          if (!firstFile) firstFile = filePath;
+          var li = document.createElement('li');
+          li.className = 'docs-sidebar__item';
+          li.textContent = titleFromPath(filePath);
+          li.dataset.file = filePath;
+          li.addEventListener('click', function () { loadDoc(filePath); });
+          listEl.appendChild(li);
+        });
+      });
+
+      var hash = window.location.hash.slice(1);
+      var allFiles = sections.reduce(function (acc, s) { return acc.concat(s.files); }, []);
+      var target = allFiles.indexOf(hash) !== -1 ? hash : firstFile;
+      if (target) loadDoc(target);
+    },
+
+    /** loadDoc(file) — programmatically navigate to a doc */
+    loadDoc: loadDoc
+  };
 })();
+
+/* handle back/forward */
+window.addEventListener('hashchange', function () {
+  var hash = window.location.hash.slice(1);
+  if (hash) DocsLeftColumnManager.loadDoc(hash);
+});
+
+/* ─────────────────────────────────────────────────────────
+   Configure your sidebar here:
+   ───────────────────────────────────────────────────────── */
+
+DocsLeftColumnManager.setSection(null, [
+  "getting_started.md",
+  "event_bus.md",
+  "sidebar.md",
+  "URLs.md",
+  "HTML_cpg_tags.md"
+]);
+
+DocsLeftColumnManager.setSection("Canonical", [
+  "canonical/tasks.md",
+  "canonical/keys.md",
+  "canonical/four-facets.md",
+  "canonical/components.md"
+]);
+
+DocsLeftColumnManager.render();
 </script>
 
 <script src="doc-exporter.js"></script>

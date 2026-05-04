@@ -64,14 +64,13 @@
 
   // Build nav links
   var links = [
-    { id: 'home',         label: 'Home',         href: '../' },
+    { id: 'home',         label: 'Home',         href: '/' },
     { id: '_hr' },
-    { id: 'calculator',   label: 'Calculator',   href: '../calculator/' },
-    { id: 'observatrons', label: 'Observatrons', href: '../observatrons/' },
-    { id: 'docs',         label: 'Docs',         href: '../docs/' },
-    { id: 'ui-bindings',  label: 'UI Bindings',  href: '../ui-bindings/' },
-    { id: 'demo',         label: 'Demo',         href: '../demo/' },
-    { id: 'liquid_hypergraph', label: 'Liquid Hypergraph', href: '../liquid_hypergraph/' }
+    { id: 'calculator',   label: 'Calculator',   href: '/calculator/' },
+    { id: 'observatrons', label: 'Observatrons', href: '/observatrons/' },
+    { id: 'docs',         label: 'Docs',         href: '/docs/' },
+    { id: 'components',   label: 'Components',   href: '/components/' },
+    { id: 'liquid_hypergraph', label: 'Liquid Hypergraph', href: '/liquid_hypergraph/' }
   ];
 
   var linksHtml = links.map(function (link) {

@@ -3,5 +3,11 @@
   { "file": "event_bus.md",       "title": "Event Bus" },
   { "file": "sidebar.md",         "title": "Sidebar" },
   { "file": "URLs.md",            "title": "URLs" },
-  { "file": "HTML_cpg_tags.md",   "title": "HTML CPG Tags" }
+  { "file": "HTML_cpg_tags.md",   "title": "HTML CPG Tags" },
+
+  { "section": "Canonical" },
+  { "file": "canonical/tasks.md",       "title": "Tasks" },
+  { "file": "canonical/keys.md",        "title": "Keys" },
+  { "file": "canonical/four-facets.md", "title": "Four Facets" },
+  { "file": "canonical/components.md",  "title": "Components" }
 ]
